@@ -31,7 +31,7 @@
     <li>
       <a href="#getting-started">Getting Started</a>
       <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#preprocessing">Preprocessing</a></li>
       </ul>
     </li>
     <li><a href="#project-contributions">Project Contributions</a></li>
@@ -43,6 +43,11 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
+Insert project description here
+<figure>
+  <img src="./img/projdetails.png", width = "640">
+  <figcaption><b>Fig 1.</b> Project Details.</figcaption>
+</figure>
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -50,34 +55,20 @@
 <!-- GETTING STARTED -->
 ## Getting Started
 
-<b> Clone the repository</b>
-  ```sh
-  git clone https://github.com/UTSW-Software-Engineering-Course-2022/module_1_austinmarckx.git
-  ```
+We did some stuff in this project such as:
 
-### Prerequisites
+* This
+* That
+* Also this
+* etc.
 
-Requirements for running the modules are listed in `requirements.txt`. These can be directly installed to your virtual environement with pip using the following command:
-```sh
-pip install -r requirements.txt
-```
+### Preprocessing
+
+closed our eyes and picked features. Done.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
-<!-- USAGE EXAMPLES -->
-## Usage
-
-The dimred module supports both python and CLI interfaces. Examples of each are provided below.
-
-### Python usage
-
-
-
-<figure>
-  <img src="./images/bones_graphdr_and_tsne_100.jpeg", width = "640">
-  <figcaption><b>Fig 2.</b> GraphDR + TSNE on Bones Data (100 steps).</figcaption>
-</figure>
 
 
 
@@ -86,8 +77,8 @@ The dimred module supports both python and CLI interfaces. Examples of each are 
 <!-- Project Contributions -->
 ## Project Contributions
 
-Austin Marckx - Austin.Marckx@UTSouthwestern.edu
-Noah Chang  - WooYong.Chang@UTSouthwestern.edu
+* Austin Marckx - Austin.Marckx@UTSouthwestern.edu
+* Noah Chang  - WooYong.Chang@UTSouthwestern.edu
 
 
 Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj](https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj)
