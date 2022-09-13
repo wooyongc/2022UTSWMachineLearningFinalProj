@@ -1,3 +1,9 @@
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
@@ -43,7 +49,6 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-Insert project description here
 <figure>
   <img src="./img/projdetails.png", width = "640">
   <figcaption><b>Fig 1.</b> Project Details.</figcaption>
@@ -104,3 +109,5 @@ Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj]
 [stars-url]: https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj/stargazers
 [issues-shield]: https://img.shields.io/github/issues/austinmarckx/2022UTSWMachineLearningFinalProj.svg?style=for-the-badge
 [issues-url]: https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj/issues
+[license-shield]: https://img.shields.io/github/license/austinmarckx/2022UTSWMachineLearningFinalProj.svg?style=for-the-badge
+[license-url]: https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj/blob/master/LICENSE.txts
