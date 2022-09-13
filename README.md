@@ -65,6 +65,8 @@
   <figcaption><b>Fig 1.</b> Project Details.</figcaption>
 </figure>
 
+<br></br>
+
 What is the MMSE?
 
 <figure>
@@ -72,6 +74,9 @@ What is the MMSE?
   <figcaption><b>Link: </b> https://oxfordmedicaleducation.com/geriatrics/mini-mental-state-examination-mmse/ </figcaption>
 </figure>
 
+<br></br>
+
+Sample MMSE:
 <figure>
   <img src="./img/mmse.png", width = "640">
   <figcaption><b>Link: </b> https://cgatoolkit.ca/Uploads/ContentDocuments/MMSE.pdf </figcaption>
