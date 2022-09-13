@@ -80,15 +80,41 @@ We did some stuff in this project such as:
 
 ### Preprocessing
 
-closed our eyes and picked features. Done.
+```{r}
+# Read in file
+df <- read_xlsx('./data/AD.training.xlsx') %>% 
+transform(
+  PTID = factor(PTID),
+  DX = factor(DX.bl),
+  PTGENDER = factor(PTGENDER),
+  APOE4 = factor(APOE4)
+)
+
+df %>% head()
+```
+
+<figure>
+  <img src="./img/dfHead.png", width = "1080">
+  <figcaption><b>Fig 2.</b> Head of Dataset.</figcaption>
+</figure>
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+It is important to realize here that our relevant feature space is _extremely_ limited.  Of the 10 original columns in the dataset, 1 (`MMSE.Change`) is the response variable, and 3 (`RID`, `PTID`, `EXAMDATE`) have minimal-no predictive information.  This leaves only 6 columns for training on a dataset with 384 entries. In short, this is very little data for a very complicated problem and this will likely result in relatively high variance in the regressive models.
+
 ### Exploratory Plotting
+
+```{r, fig.width= 18, fig.height=18, message = FALSE, warning = FALSE}
+df %>% 
+  mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE)))  ) %>%
+  select(AGE, PTEDUCAT, MMSE, asinsqrtMMSE, everything(), MMSE.Change, -RID, -PTID, -EXAMDATE) %>% # removing factors with too many levels or irrelevant features
+  ggpairs(aes(fill = PTGENDER, alpha = 0.7), progress = FALSE)
+
+```
 
 <figure>
   <img src="./img/exploratoryPairs.png", width = "1080">
-  <figcaption><b>Fig 2.</b> Exploratory Pair Plot.</figcaption>
+  <figcaption><b>Fig 3.</b> Exploratory Pair Plot.</figcaption>
 </figure>
 
 
