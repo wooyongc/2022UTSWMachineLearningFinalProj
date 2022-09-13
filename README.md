@@ -86,7 +86,11 @@ closed our eyes and picked features. Done.
 
 ### Exploratory Plotting
 
-...
+<figure>
+  <img src="./img/exploratoryPairs.png", width = "1080">
+  <figcaption><b>Fig 2.</b> Exploratory Pair Plot.</figcaption>
+</figure>
+
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
