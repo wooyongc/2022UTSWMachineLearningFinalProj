@@ -65,6 +65,17 @@
   <figcaption><b>Fig 1.</b> Project Details.</figcaption>
 </figure>
 
+What is the MMSE?
+
+<figure>
+  <img src="./img/mmseOverview.png", width = "640">
+  <figcaption><b>Link: </b> https://oxfordmedicaleducation.com/geriatrics/mini-mental-state-examination-mmse/ </figcaption>
+</figure>
+
+<figure>
+  <img src="./img/mmse.png", width = "640">
+  <figcaption><b>Link: </b> https://cgatoolkit.ca/Uploads/ContentDocuments/MMSE.pdf </figcaption>
+</figure>
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -167,6 +178,10 @@ Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj]
 ## Acknowledgments
 
 Works cited go here...
+
+- MMSE Overview: https://oxfordmedicaleducation.com/geriatrics/mini-mental-state-examination-mmse/
+- MMSE Sample Exam: https://cgatoolkit.ca/Uploads/ContentDocuments/MMSE.pdf
+
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
