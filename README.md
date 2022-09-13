@@ -45,9 +45,9 @@
     <li>
         <a href="#modeling">Modeling</a>
         <ul>
-            <li><a href="#model-selection">Model-Selection</a></li>
-            <li><a href="#model-training">Model-Training</a></li>
-            <li><a href="#model-evaluation">Model-Evaluation</a></li>
+            <li><a href="#model-selection">Model Selection</a></li>
+            <li><a href="#model-training">Model Training</a></li>
+            <li><a href="#model-evaluation">Model Evaluation</a></li>
         </ul>
     </li>
     <li><a href="#conclusions">Conclusions</a></li>
