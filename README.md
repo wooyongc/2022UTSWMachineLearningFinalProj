@@ -38,8 +38,19 @@
       <a href="#getting-started">Getting Started</a>
       <ul>
         <li><a href="#preprocessing">Preprocessing</a></li>
+        <li><a href="#exploratory-plotting">Exploratory Plotting</a></li>
+        <li><a href="#feature-selection">Feature Selection</a></li>
       </ul>
     </li>
+    <li>
+        <a href="#modeling">Modeling</a>
+        <ul>
+            <li><a href="#model-selection">Model-Selection</a></li>
+            <li><a href="#model-training">Model-Training</a></li>
+            <li><a href="#model-evaluation">Model-Evaluation</a></li>
+        </ul>
+    </li>
+    <li><a href="#conclusions">Conclusions</a></li>
     <li><a href="#project-contributions">Project Contributions</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
@@ -73,18 +84,50 @@ closed our eyes and picked features. Done.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+### Exploratory Plotting
+
+...
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+### Feature Selection
+
+closed our eyes and picked features. Done.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Modeling
+
+### Model Selection
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+### Model Training
+
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+### Model Evaluation
+
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+## Conclusions
 
 
 
-
-
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- Project Contributions -->
 ## Project Contributions
 
 * Austin Marckx - Austin.Marckx@UTSouthwestern.edu
-* Noah Chang  - WooYong.Chang@UTSouthwestern.edu
+  * I did this thing
+  * And that thing
 
+* Noah Chang - WooYong.Chang@UTSouthwestern.edu
+  * I did this other thing
+  * And that other thing
 
 Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj](https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj)
 
@@ -93,10 +136,10 @@ Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj]
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
+Works cited go here...
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
