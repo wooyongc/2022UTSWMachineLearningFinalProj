@@ -124,13 +124,18 @@ It is important to realize here that our relevant feature space is _extremely_ l
 df %>% 
   mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE)))  ) %>%
   select(AGE, PTEDUCAT, MMSE, asinsqrtMMSE, everything(), MMSE.Change, -RID, -PTID, -EXAMDATE) %>% # removing factors with too many levels or irrelevant features
-  ggpairs(aes(fill = PTGENDER, alpha = 0.7), progress = FALSE)
+  ggpairs(aes(fill = DX, alpha = 0.7), progress = FALSE)
 
 ```
 
 <figure>
-  <img src="./img/exploratoryPairs.png", width = "1080">
+  <img src="./img/pairs_colorDX.png", width = "1080">
   <figcaption><b>Fig 3.</b> Exploratory Pair Plot.</figcaption>
+</figure>
+
+<figure>
+  <img src="./img/mmseChangeRidgeline.png", width = "720">
+  <figcaption><b>Fig 4.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
 </figure>
 
 

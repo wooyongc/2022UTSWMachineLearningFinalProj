@@ -1,5 +1,5 @@
 ---
-title: "ML_Proj3"
+title: "ML_Proj8 - Final"
 author: "Austin Marckx"
 date: "`r Sys.Date()`"
 output:
@@ -16,6 +16,7 @@ library(randomForest)
 library(caret)
 library(cowplot)
 library(tidyverse)
+library(ggridges)
 
 minmax <- function(x){
   return( (x - min(x))/(max(x) - min(x))  )
@@ -39,7 +40,7 @@ df <- read_xlsx('./data/AD.training.xlsx')
 # Transform datatypes
 df <- df %>% transform(
   PTID = factor(PTID),
-  DX = factor(DX.bl),
+  DX = factor(DX.bl, levels = c("CN", "EMCI", "LMCI", "AD")),
   PTGENDER = factor(PTGENDER),
   APOE4 = factor(APOE4)
 ) %>% select(AGE, PTEDUCAT, MMSE, PTGENDER, APOE4, DX, everything(), -DX.bl)
@@ -71,95 +72,42 @@ df %>%
 
 ```
 #
-`marital.status` and `relationship` seem to be fairly redundant features here. (i.e. I think marital status would be a subset of the relationship category as someone who is married would necessarily be a husband or a wife). I would consider dropping the `marital.status` column.
-
-`Education`/`education.num` are also highly redundant.  I would lean toward dropping the categorical bin variable here (as it really doesn't even reduce the possible values very much.)
-
-I would note that both `capital.gain` and `capital.loss` are heavily skewed.  I would consider doing a log transform of these features in order to help with the skew.  
-
-Additionally, I would guess that `capital.gain` and `capital.loss` will be relatively important features because they seem to show the cleanest separation of the two salary groups according to the scatter plots.
-
-Moreover, because they appear to be completely orthogonal to each other.  I could combine these two features into a single variable `capital.change` where capital loss is represented as a negative value or create a binary variable `gotCapital` which indicates whether either `capital.gain` or `capital.loss` is `0`.
-
 ```{r}
+# https://www.datanovia.com/en/blog/elegant-visualization-of-density-distribution-in-r-using-ridgeline/
+df %>%
+  ggplot(aes(x = `MMSE.Change`, y = DX, group = DX, fill = factor(stat(quantile)))) + 
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE,
+    quantiles = 4,
+    quantile_lines = TRUE, 
+    jittered_points = TRUE,
+    scale = 0.9,
+    position = position_points_jitter(width = 0.05, height = 0.1),
+    point_size = 1, point_alpha = 0.5, alpha = 0.7) + 
+  theme_minimal() +
+  scale_fill_brewer(name = 'Quartiles')
+```
+
+```{r, fig.width= 18, fig.height=18, message = FALSE, warning = FALSE}
 df %>% 
-  mutate(capitalCheck = ifelse((capital.gain > 0 & capital.loss > 0), TRUE, FALSE), orthogCheck = factor(sum(capitalCheck))) %>% str()
-
-df %>% 
-  mutate(capital.change = ifelse(capital.gain > 0, capital.gain, -capital.loss)) %>%
-  filter(capital.change != 0) %>%
-  ggplot(aes(x = scale(capital.change), color = salary, fill = salary)) +
-  geom_bar() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  facet_wrap(~salary)
+  mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE)))  ) %>%
+  select(AGE, PTEDUCAT, MMSE, asinsqrtMMSE, everything(), MMSE.Change, -RID, -PTID, -EXAMDATE) %>% # removing factors with too many levels or irrelevant features
+  ggpairs(aes(fill = DX, alpha = 0.7), progress = FALSE)
 
 ```
 
-```{r, fig.width= 7, fig.height=7, message = FALSE, warning = FALSE}
-df %>% 
-  mutate(gotCapital = ifelse((capital.gain > 0 | capital.loss > 0), TRUE, FALSE)) %>%
-  select(gotCapital, salary) %>%
-  ggplot(aes(x = gotCapital, color = salary, fill = salary)) +
-  geom_bar() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-```
 
-```{r, fig.height = 6, fig.width=12}
-gainScatter <- df %>% 
-  ggplot(aes(x = capital.gain, y = education.num, color = salary, fill = salary)) +
-  geom_jitter()
+salmon - CN
+green - EMCI
+blue - LMCI
+purple - AD
 
-logGainHist<- df %>% 
-  ggplot(aes(x = log(capital.gain), color = salary, fill = salary)) +
-  geom_bar() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-plot_grid(gainScatter, logGainHist, labels = 'AUTO', ncol = 2)
-
-```
-
-`capital.gain`/`capital.loss` seems to be among the best features at distinctly separating people with `>50k` income. Including this as a feature could improve performance.  That said, this only accounts for a small proportion of the dataset so the improvement (if any) will likely be marginal.
-
-Note: while I realize that doing the log removes `0` values, because the dataset is so heavily dominated by `0` (~30k), it does not improve visualization to include.
-
-### Diversity sampling:
-
-```{r, fig.height = 6, fig.width=12}
-genderBar <- df %>% 
-  ggplot(aes(x = sex, color = salary, fill = salary)) +
-  geom_bar() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-raceBar <- df %>% 
-  ggplot(aes(x = race, color = salary, fill = salary)) +
-  geom_bar() + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-plot_grid(genderBar, raceBar, labels = 'AUTO', ncol = 2)
-
-```
-
-Clearly the reported data is biased in both `sex` and `race`.
-
-### Check for Dimensionality reduction
-
-So far as correlation of continuous variables is concerned. Although significant, the correlation between individual variables is quite low 
-
-Nevertheless, I try doing PCA to see if there is relative redundancy in my continuous variables. 
-
-Ultimately there is very little condensation of variance suggesting the variables are relatively independent of each other.
-```{r} 
-# PCA really not too helpful
-pca<- df %>% select(age, hours.per.week, fnlwgt, education.num, capital.gain, capital.loss) %>% prcomp(center = TRUE, scale = TRUE)
-pca
-summary(pca)
-
-```
 
 # Train: 
 
 ```{r}
-df1 <- df %>% mutate(sqrtMMSE = sqrt(MMSE)) %>% select(-RID, -PTID, -EXAMDATE, -MMSE)
+df1 <- df %>% select(-RID, -PTID, -EXAMDATE)
 
 rf <- randomForest(`MMSE.Change` ~ ., data = df1, ntrees = 500, importance = TRUE, type = 'regression')
 y_pred <- predict(rf)
