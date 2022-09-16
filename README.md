@@ -133,10 +133,25 @@ df %>%
   <figcaption><b>Fig 3.</b> Exploratory Pair Plot.</figcaption>
 </figure>
 
-
+```{r}
+# template: https://www.datanovia.com/en/blog/elegant-visualization-of-density-distribution-in-r-using-ridgeline/
+df %>%
+  ggplot(aes(x = `MMSE.Change`, y = DX, group = DX, fill = factor(stat(quantile)))) + 
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE,
+    quantiles = 4,
+    quantile_lines = TRUE, 
+    jittered_points = TRUE,
+    scale = 0.9,
+    position = position_points_jitter(width = 0.05, height = 0.1),
+    point_size = 1, point_alpha = 0.5, alpha = 0.7) + 
+  theme_minimal() +
+  scale_fill_brewer(name = 'Quartiles')
+```
 
 <figure>
-  <img src="./img/mmseChangeRidgeline.png", width = "720">
+  <img src="./img/mmseChangeRidgeLine.png", width = "720">
   <figcaption><b>Fig 4.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
 </figure>
 
