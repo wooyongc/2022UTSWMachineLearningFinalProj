@@ -133,6 +133,8 @@ df %>%
   <figcaption><b>Fig 3.</b> Exploratory Pair Plot.</figcaption>
 </figure>
 
+
+
 <figure>
   <img src="./img/mmseChangeRidgeline.png", width = "720">
   <figcaption><b>Fig 4.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
