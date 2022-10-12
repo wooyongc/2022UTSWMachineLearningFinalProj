@@ -17,6 +17,7 @@ library(caret)
 library(cowplot)
 library(tidyverse)
 library(ggridges)
+library(boot)
 
 minmax <- function(x){
   return( (x - min(x))/(max(x) - min(x))  )
@@ -107,7 +108,7 @@ purple - AD
 ```{r}
 # Subset to only useful features
 df_clean <- df %>% select(-RID, -PTID, -EXAMDATE)
-
+df_clean %>% head()
 ```
 
 # GLM Regression
@@ -118,7 +119,8 @@ gauss <- glm(`MMSE.Change` ~ ., data = df_clean, family = gaussian())
 summary(gauss)
 
 plot(gauss)
-``
+```
+
 
 # Random Forest Regression: 
 ```{r}
@@ -131,7 +133,23 @@ importance(rf)
 varImpPlot(rf)
 ```
 
+# Bootstrapping (!?): 
+```{r}
+#https://www.statmethods.net/advstats/bootstrapping.html
+bs <- function(formula, data, indices) {
+  d <- data[indices,] # allows boot to select sample
+  fit <- glm(formula, data=d, family = gaussian())
+  return(coef(fit))
+}
 
+results <- boot(data = df_clean, statistic=bs, formula = `MMSE.Change` ~ ., R = 1000)
+
+results
+plot(results)
+plot(results, index = 10)
+
+boot.ci(results, index = 10)
+```
 
 
 
