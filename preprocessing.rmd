@@ -99,17 +99,61 @@ df %>%
 
 
 salmon - CN
-green - EMCI
-blue - LMCI
+green - EMCI (Early mild cognitive impairment)
+blue - LMCI (Late mild cognitive impairment)
 purple - AD
 
-
-# Train: 
-
+# Remove non predictive features
 ```{r}
-df1 <- df %>% select(-RID, -PTID, -EXAMDATE)
+df_clean <- df %>% select(-RID, -PTID, -EXAMDATE)
+# Actually, let's change our output variable (MMSE.Change) to final.MMSE where final.MMSE = MMSE + MMSE.Change
+df_clean <- df_clean %>% mutate(MMSE.final = MMSE + MMSE.Change) %>% select(-MMSE.Change)
+df_clean %>% head()
 
-rf <- randomForest(`MMSE.Change` ~ ., data = df1, ntrees = 500, importance = TRUE, type = 'regression')
+# Minmax scale 
+df_minmax <- df_clean %>% mutate(AGE=minmax(AGE), PTEDUCAT = minmax(PTEDUCAT), MMSE = minmax(MMSE))
+
+
+```
+
+# GLM Regression
+
+## gaussian
+```{r}
+gauss <- glm(`MMSE.final` ~ ., data = df_clean, family = gaussian())
+summary(gauss)
+
+plot(gauss)
+```
+
+## Poisson
+```{r}
+pois <- glm(`MMSE.final` ~ ., data = df_clean, family = poisson())
+summary(pois)
+
+plot(pois)
+```
+
+## Poisson - minmax
+```{r}
+mm_pois <- glm(`MMSE.final` ~ ., data = df_minmax, family = poisson())
+summary(mm_pois)
+
+plot(mm_pois)
+```
+
+
+
+## Quasi-Poisson
+```{r}
+qpois <- glm(`MMSE.final` ~ ., data = df_clean, family = quasipoisson())
+summary(qpois)
+
+plot(qpois)
+```
+# Random Forest Regression: 
+```{r}
+rf <- randomForest(`MMSE.final` ~ ., data = df_clean, ntrees = 500, importance = TRUE, type = 'regression')
 y_pred <- predict(rf)
 
 rf
@@ -117,6 +161,10 @@ plot(rf)
 importance(rf)
 varImpPlot(rf)
 ```
+
+
+
+
 
 
 ```{r}
