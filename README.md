@@ -151,9 +151,54 @@ df %>%
 ```
 
 <figure>
-  <img src="./img/mmseChangeRidgeLine.png", width = "720">
-  <figcaption><b>Fig 4.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
+  <img src="./img/mmseBasevsChangeRidgeLine.png", width = "720">
+  <figcaption><b>Fig 4.</b> MMSE Ridgeline Plot.</figcaption>
 </figure>
+
+Due to the basal distributions being quite similar in both shape and range for the majority of values, it will likely be quite difficult to get a predictor with low variance.
+
+```{r}
+# template: 
+df %>%
+  ggplot(aes(x = `MMSE.Change`, y = DX, group = DX, fill = factor(stat(quantile)))) + 
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE,
+    quantiles = 4,
+    quantile_lines = TRUE, 
+    jittered_points = TRUE,
+    scale = 0.9,
+    position = position_points_jitter(width = 0.05, height = 0.1),
+    point_size = 1, point_alpha = 0.5, alpha = 0.7) + 
+  theme_minimal() +
+  scale_fill_brewer(name = 'Quartiles')
+```
+
+<figure>
+  <img src="./img/mmseChangeRidgeLine.png", width = "720">
+  <figcaption><b>Fig 5.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
+</figure>
+
+
+```{r}
+df %>%
+  select(PTID, `MMSE.Change`, MMSE, DX) %>%
+  mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
+  select(-`MMSE.Change`) %>%
+  pivot_longer(cols = c(MMSE4mo, MMSE),  names_to = 'time', values_to = 'MMSE') %>%
+  ggplot(aes(x = MMSE, y = time, group = PTID, color = DX)) + 
+    geom_jitter(width = 0.2, height = 0.075) +
+    geom_line() +
+    geom_violin(aes(color = NULL, fill = time, group = time), alpha = 0.15, draw_quantiles = c(0.25, 0.5, 0.75)) + 
+  theme_minimal() +
+  facet_wrap(~DX)
+```
+
+<figure>
+  <img src="./img/MMSE_densityLinePairs_byDiag.png", width = "720">
+  <figcaption><b>Fig 6.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
+</figure>
+
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>

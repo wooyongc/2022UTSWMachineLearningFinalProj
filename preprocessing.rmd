@@ -18,6 +18,9 @@ library(cowplot)
 library(tidyverse)
 library(ggridges)
 library(boot)
+library(mclust)
+library("FactoMineR")
+library("factoextra")
 
 minmax <- function(x){
   return( (x - min(x))/(max(x) - min(x))  )
@@ -98,6 +101,87 @@ df %>%
 
 ```
 
+#
+```{r}
+# https://www.datanovia.com/en/blog/elegant-visualization-of-density-distribution-in-r-using-ridgeline/
+df %>%
+  select(PTID, `MMSE.Change`, MMSE, DX) %>%
+  mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
+  select(-`MMSE.Change`) %>%
+  pivot_longer(cols = c(MMSE4mo, MMSE),  names_to = 'time', values_to = 'MMSE') %>%
+  ggplot(aes(x = MMSE, y = time, group = time, fill = factor(stat(quantile)))) + 
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE,
+    quantiles = 4,
+    quantile_lines = TRUE, 
+    jittered_points = TRUE,
+    scale = 0.9,
+    position = position_points_jitter(width = 0.05, height = 0.1),
+    point_size = 1, point_alpha = 0.5, alpha = 0.7) + 
+  theme_minimal() +
+  scale_fill_brewer(name = 'Quartiles')
+```
+
+#
+```{r}
+# https://www.datanovia.com/en/blog/elegant-visualization-of-density-distribution-in-r-using-ridgeline/
+df %>%
+  select(PTID, `MMSE.Change`, MMSE, DX) %>%
+  mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
+  select(-`MMSE.Change`) %>%
+  pivot_longer(cols = c(MMSE4mo, MMSE),  names_to = 'time', values_to = 'MMSE') %>%
+  ggplot(aes(x = MMSE, y = time, group = PTID, color = DX)) + 
+    geom_jitter(width = 0.2, height = 0.075) +
+    geom_line() +
+    geom_violin(aes(color = NULL, fill = time, group = time), alpha = 0.1, draw_quantiles = c(0.25, 0.5, 0.75)) + 
+  theme_minimal() +
+  scale_fill_brewer(name = 'Quartiles') + 
+  facet_wrap(~DX)
+```
+
+
+# Patient-wise 
+```{r}
+
+df %>% 
+  select(PTID, `MMSE.Change`, MMSE, DX) %>%
+  mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
+  select(-`MMSE.Change`) %>%
+  pivot_longer(cols = c(MMSE4mo,MMSE),  names_to = 'time', values_to = 'MMSE') %>%
+  ggplot(aes(x = time, y = MMSE, col = DX, group = PTID)) +
+    geom_point(alpha = 0.7)+
+    geom_line()+ 
+    facet_wrap(~DX) +
+    theme_minimal()
+  
+
+```
+# Patient-wise 
+```{r}
+
+df %>% 
+  select(PTID, `MMSE.Change`, MMSE, DX) %>%
+  mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
+  select(-`MMSE.Change`) %>%
+  pivot_longer(cols = c(MMSE4mo,MMSE),  names_to = 'time', values_to = 'MMSE') %>%
+  group_by(time) %>% rstatix::get_summary_stats()
+
+```
+
+
+# Patient-wise 
+```{r}
+
+df %>% 
+  select(PTID, `MMSE.Change`, MMSE, DX) %>%
+  mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
+  select(-`MMSE.Change`) %>%
+  pivot_longer(cols = c(MMSE4mo,MMSE),  names_to = 'time', values_to = 'MMSE') %>%
+  group_by(DX, time) %>% rstatix::get_summary_stats()
+
+```
+
 
 salmon - CN
 green - EMCI (Early mild cognitive impairment)
@@ -109,6 +193,11 @@ purple - AD
 # Subset to only useful features
 df_clean <- df %>% select(-RID, -PTID, -EXAMDATE)
 df_clean %>% head()
+
+# More subsets
+X <- df_clean %>% select(-`MMSE.Change`)
+df_numerical <- df_clean %>% select(-`MMSE.Change`, -PTGENDER, -APOE4, -DX)
+df_categorical <- df_clean %>% select(-`MMSE.Change`, -AGE, -MMSE, -PTEDUCAT)
 ```
 
 # GLM Regression
@@ -150,6 +239,85 @@ plot(results, index = 10)
 
 boot.ci(results, index = 10)
 ```
+
+
+
+
+
+# Gaussian Mixture: 
+```{r, fig.height = 12, fig.width=12}
+gmm <- Mclust(df_numerical)
+summary(gmm)
+plot(gmm, what = "BIC")
+plot(gmm, what = "classification")
+```
+
+# PCA 
+```{r}
+# http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/115-famd-factor-analysis-of-mixed-data-in-r-essentials/
+
+resPCA <- PCA(df_numerical)
+
+resPCA
+fviz_screeplot(resPCA)
+fviz_famd_var(resPCA, "quanti.var", col.var = "contrib", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+
+```
+
+
+# FAMD
+```{r}
+# http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/115-famd-factor-analysis-of-mixed-data-in-r-essentials/
+
+resFAMD <- FAMD(df_clean)
+
+resFAMD
+fviz_mfa_ind(resFAMD, 
+             habillage = "MMSE.Change", # color by groups 
+             #palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, ellipse.type = "confidence", 
+             repel = TRUE # Avoid text overlapping
+             ) 
+```
+
+# Gaussian Mixture: 
+```{r, fig.height = 12, fig.width=12}
+gmm <- Mclust(df_numerical)
+summary(gmm)
+plot(gmm, what = "BIC")
+plot(gmm, what = "classification")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
