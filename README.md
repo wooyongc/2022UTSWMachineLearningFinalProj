@@ -176,7 +176,7 @@ df %>%
   <figcaption><b>Fig 5.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
 </figure>
 
-In some groups (CN/EMCI), the line/points clearly indicate subject variability. This variability seems to increase in LMCI and AD.  Note that because the MMSE score is capped at 30, we may have some sensoring which could cause the measure of center to shift to the left.
+In some groups (CN/EMCI), the line/points clearly indicate subject variability. This variability seems to increase in LMCI and AD.  Note that because the MMSE score is capped at 30, we may have some censoring which could cause the measure of center to shift to the left.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
