@@ -134,32 +134,15 @@ df %>%
   ggplot(aes(x = MMSE, y = time, group = PTID, color = DX)) + 
     geom_jitter(width = 0.2, height = 0.075) +
     geom_line() +
-    geom_violin(aes(color = NULL, fill = time, group = time), alpha = 0.1, draw_quantiles = c(0.25, 0.5, 0.75)) + 
+    geom_violin(aes(color = NULL, fill = time, group = time), alpha = 0.15, draw_quantiles = c(0.25, 0.5, 0.75)) + 
   theme_minimal() +
-  scale_fill_brewer(name = 'Quartiles') + 
   facet_wrap(~DX)
 ```
 
-
-# Patient-wise 
+# Look at Summary stats
 ```{r}
 
-df %>% 
-  select(PTID, `MMSE.Change`, MMSE, DX) %>%
-  mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
-  select(-`MMSE.Change`) %>%
-  pivot_longer(cols = c(MMSE4mo,MMSE),  names_to = 'time', values_to = 'MMSE') %>%
-  ggplot(aes(x = time, y = MMSE, col = DX, group = PTID)) +
-    geom_point(alpha = 0.7)+
-    geom_line()+ 
-    facet_wrap(~DX) +
-    theme_minimal()
-  
-
-```
-# Patient-wise 
-```{r}
-
+# By Time
 df %>% 
   select(PTID, `MMSE.Change`, MMSE, DX) %>%
   mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
@@ -167,12 +150,7 @@ df %>%
   pivot_longer(cols = c(MMSE4mo,MMSE),  names_to = 'time', values_to = 'MMSE') %>%
   group_by(time) %>% rstatix::get_summary_stats()
 
-```
-
-
-# Patient-wise 
-```{r}
-
+# By time and DX
 df %>% 
   select(PTID, `MMSE.Change`, MMSE, DX) %>%
   mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
@@ -206,7 +184,6 @@ df_categorical <- df_clean %>% select(-`MMSE.Change`, -AGE, -MMSE, -PTEDUCAT)
 ```{r}
 gauss <- glm(`MMSE.Change` ~ ., data = df_clean, family = gaussian())
 summary(gauss)
-
 plot(gauss)
 ```
 

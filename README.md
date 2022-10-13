@@ -176,33 +176,82 @@ df %>%
   <figcaption><b>Fig 5.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
 </figure>
 
-
+In some groups (CN/EMCI), the line/points clearly indicate subject variability. This variability seems to increase in LMCI and AD.  Note that because the MMSE score is capped at 30, we may have some sensoring which could cause the measure of center to shift to the left.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### Feature Selection
 
-closed our eyes and picked features. Done.
+`RID`, `PTID`, `EXAMDATE` have minimal-no predictive information and we will drop these values for all models.
+
+In order to see if our data can be condensed, we tried PCA and FAMD for dimensionality reduction.
+
+(spoilers, neither helps too much)
+
+* PCA
+* FAMD
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Modeling
 
-### Model Selection
+* GLM
+* RF
+* Neural Net?
+
+### GLM
+
+#### Setup
+```{r}
+gauss <- glm(`MMSE.Change` ~ ., data = df_clean, family = gaussian())
+summary(gauss)
+plot(gauss)
+```
+
+#### Evaluation
+
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Model Training
+### RF
+
+#### Setup
+```{r}
+rf <- randomForest(`MMSE.Change` ~ ., data = df_clean, ntrees = 500, importance = TRUE, type = 'regression')
+y_pred <- predict(rf)
+
+rf
+plot(rf)
+importance(rf)
+varImpPlot(rf)
+```
+
+#### Evaluation
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Model Evaluation
+### Neural Net (?)
+
+#### Setup
 
 
-<p align="right">(<a href="#top">back to top</a>)</p>
+#### Evaluation
+
+
+
+
+## Discussion
+
+we found out 
+* This thing
+* And that thing
 
 ## Conclusions
+
+* A short sentence summary of our work
+* A brief aside on Limitations
+* Future directions may include
 
 
 
