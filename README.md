@@ -158,29 +158,6 @@ df %>%
 Due to the basal distributions being quite similar in both shape and range for the majority of values, it will likely be quite difficult to get a predictor with low variance.
 
 ```{r}
-# template: 
-df %>%
-  ggplot(aes(x = `MMSE.Change`, y = DX, group = DX, fill = factor(stat(quantile)))) + 
-  stat_density_ridges(
-    geom = "density_ridges_gradient",
-    calc_ecdf = TRUE,
-    quantiles = 4,
-    quantile_lines = TRUE, 
-    jittered_points = TRUE,
-    scale = 0.9,
-    position = position_points_jitter(width = 0.05, height = 0.1),
-    point_size = 1, point_alpha = 0.5, alpha = 0.7) + 
-  theme_minimal() +
-  scale_fill_brewer(name = 'Quartiles')
-```
-
-<figure>
-  <img src="./img/mmseChangeRidgeLine.png", width = "720">
-  <figcaption><b>Fig 5.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
-</figure>
-
-
-```{r}
 df %>%
   select(PTID, `MMSE.Change`, MMSE, DX) %>%
   mutate(MMSE4mo = MMSE + `MMSE.Change`) %>%
@@ -196,7 +173,7 @@ df %>%
 
 <figure>
   <img src="./img/MMSE_densityLinePairs_byDiag.png", width = "720">
-  <figcaption><b>Fig 6.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
+  <figcaption><b>Fig 5.</b> Change in MMSE by DX Ridgeline Plot.</figcaption>
 </figure>
 
 
