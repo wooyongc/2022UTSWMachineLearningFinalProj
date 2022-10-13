@@ -208,6 +208,44 @@ summary(gauss)
 plot(gauss)
 ```
 
+```
+Call:
+glm(formula = MMSE.Change ~ ., family = gaussian(), data = df_clean)
+
+Deviance Residuals: 
+     Min        1Q    Median        3Q       Max  
+-17.1360   -1.1402    0.2953    1.6626    8.7894  
+
+Coefficients:
+             Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   0.35168    3.73327   0.094 0.925000    
+AGE           0.05543    0.02408   2.302 0.021878 *  
+PTEDUCAT     -0.03558    0.06161  -0.578 0.563922    
+MMSE         -0.14412    0.10269  -1.403 0.161316    
+PTGENDERMale  0.29308    0.33798   0.867 0.386417    
+APOE41       -0.34469    0.36527  -0.944 0.345946    
+APOE42       -0.42068    0.55977  -0.752 0.452810    
+DXEMCI       -0.01832    0.52151  -0.035 0.971994    
+DXLMCI       -1.74341    0.45599  -3.823 0.000154 ***
+DXAD         -5.25577    0.75794  -6.934  1.8e-11 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+(Dispersion parameter for gaussian family taken to be 10.044)
+
+    Null deviance: 4877.1  on 383  degrees of freedom
+Residual deviance: 3756.5  on 374  degrees of freedom
+AIC: 1987.5
+
+Number of Fisher Scoring iterations: 2
+```
+
+<figure>
+  <img src="./img/glmGaussianPlot.png", width = "720">
+  <figcaption><b>Fig 6.</b> GLM Regression Plots.</figcaption>
+</figure>
+
+
 #### Evaluation
 
 
@@ -225,6 +263,30 @@ plot(rf)
 importance(rf)
 varImpPlot(rf)
 ```
+
+```
+Call:
+ randomForest(formula = MMSE.Change ~ ., data = df_clean, ntrees = 500,      importance = TRUE, type = "regression") 
+               Type of random forest: regression
+                     Number of trees: 500
+No. of variables tried at each split: 2
+
+          Mean of squared residuals: 10.38104
+                    % Var explained: 18.26
+           %IncMSE IncNodePurity
+AGE      10.349901     1086.5447
+PTEDUCAT  1.117041      558.6845
+MMSE     15.681850      843.7943
+PTGENDER  3.466778      154.5082
+APOE4     2.843596      285.1642
+DX       26.222985      776.4001
+
+```
+
+<figure>
+  <img src="./img/rfPlot.png", width = "720">
+  <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
+</figure>
 
 #### Evaluation
 
