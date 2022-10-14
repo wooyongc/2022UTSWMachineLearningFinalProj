@@ -189,7 +189,44 @@ In order to see if our data can be condensed, we tried PCA and FAMD for dimensio
 (spoilers, neither helps too much)
 
 * PCA
+
+```
+resPCA <- PCA(df_numerical) # Note, this automatically scales the data
+resPCA$eig
+fviz_screeplot(resPCA)
+corrplot(resPCA$var$contrib, is.corr = FALSE, col = COL2('PiYG', 20))
+fviz_pca_ind(resPCA, col.ind = "contrib", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+fviz_pca_var(resPCA, col.var = "contrib", 
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE)
+```
+<figure>
+  <img src="./img/PCAplots3.png", width = "720">
+  <figcaption><b>Fig 6.</b> PCA plot of numerical variables.</figcaption>
+</figure>
+
 * FAMD
+
+```{r}
+resFAMD <- FAMD(X)
+resFAMD$eig
+corrplot(resFAMD$var$contrib, is.corr = FALSE, col = COL1('YlGn', 20))
+fviz_famd_var(resFAMD,"var",
+             repel = TRUE)
+fviz_mfa_ind(resFAMD, 
+             habillage = "DX", # color by groups 
+             #palette = c("#00AFBB", "#E7B800", "#FC4E07"),
+             addEllipses = TRUE, ellipse.type = "confidence", 
+             repel = TRUE # Avoid text overlapping
+             ) 
+```
+
+<figure>
+  <img src="./img/FAMDplots.png", width = "720">
+  <figcaption><b>Fig 7.</b> FAMD plots variables.</figcaption>
+</figure>
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
