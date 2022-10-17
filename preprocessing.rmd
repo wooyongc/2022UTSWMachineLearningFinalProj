@@ -208,7 +208,7 @@ resPCA <- PCA(df_numerical) # Note, this automatically scales the data
 
 resPCA$eig
 fviz_screeplot(resPCA)
-corrplot(resPCA$var$contrib, is.corr = FALSE, col = COL2('PiYG', 20))
+corrplot(resPCA$var$contrib, is.corr = FALSE, col = COL1('YlGn', 20))
 
 
 fviz_pca_ind(resPCA, col.ind = "contrib", 
@@ -229,7 +229,7 @@ fviz_pca_var(resPCA, col.var = "contrib",
 resFAMD <- FAMD(X)
 
 resFAMD$eig
-corrplot(resFAMD$var$contrib, is.corr = FALSE, col = COL1('YlGr', 20))
+corrplot(resFAMD$var$contrib, is.corr = FALSE, col = COL1('YlGn', 20))
 fviz_famd_var(resFAMD,"var",
              repel = TRUE)
 

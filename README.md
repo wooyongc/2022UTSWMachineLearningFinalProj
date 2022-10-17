@@ -87,12 +87,27 @@ Sample MMSE:
 <!-- GETTING STARTED -->
 ## Getting Started
 
-We did some stuff in this project such as:
+1 Sentence problem statement (what's Y, what's X, etc.)
 
-* This
-* That
-* Also this
-* etc.
+Preprocessing:
+- Exploratory plotting
+  - Pairs plot
+  - Baseline vs. Target density
+  - Paired density by diagnosis
+
+Feature Selection and Dimension reduction:
+- Feature selection
+- PCA
+- FAMD
+
+Model training
+- GLM
+- RF
+
+Dataset augmentation?
+- GLM2
+- RF2
+
 
 ### Preprocessing
 
