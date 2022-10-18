@@ -87,7 +87,8 @@ Sample MMSE:
 <!-- GETTING STARTED -->
 ## Getting Started
 
-1 Sentence problem statement (what's Y, what's X, etc.)
+The goal of this projet is to predict the change in MMSE score `MMSE.Change` (Y) given baseline patient features. Note, this is a regression problem and although `MMSE` is a discrete count the predicted quanitity `MMSE.Change` will be treated as a continuous variable.
+
 
 Preprocessing:
 - Exploratory plotting
@@ -124,6 +125,18 @@ transform(
 df %>% head()
 ```
 
+First, the dataset was read into R, then the data integrity was quickly validated by
+- Checking column names/datatypes
+  - Including understanding the meaning of each feature/categorical entry
+- Checking for missing values
+- Checking basic summary statistics
+
+Note that levels of the DX (diagnosis) column are as follows:
+- CN : Cognitively normal
+- EMCI : Early Mild Cognitive Impairment
+- LMCI : Late Mile Cognitive Impairment
+- AD : Alzheimer's Disease
+
 <figure>
   <img src="./img/dfHead.png", width = "1080">
   <figcaption><b>Fig 2.</b> Head of Dataset.</figcaption>
@@ -131,17 +144,23 @@ df %>% head()
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-It is important to realize here that our relevant feature space is _extremely_ limited.  Of the 10 original columns in the dataset, 1 (`MMSE.Change`) is the response variable, and 3 (`RID`, `PTID`, `EXAMDATE`) have minimal-no predictive information.  This leaves only 6 columns for training on a dataset with 384 entries. In short, this is very little data for a very complicated problem and this will likely result in relatively high variance in the regressive models.
+After a cursory examination of the dataset, it is important to realize here that our relevant feature space is _extremely_ limited.  Of the 10 original columns in the dataset, 1 (`MMSE.Change`) is the response variable, and 3 (`RID`, `PTID`, `EXAMDATE`) have minimal-no predictive information.  This leaves only 6 columns for training on a dataset with 384 entries. In short, unless there are very dominant features with extremely high predictive value, this is very little data for a very complicated problem and this will likely result in relatively high variance in the regressive models.
 
 ### Exploratory Plotting
 
 ```{r, fig.width= 18, fig.height=18, message = FALSE, warning = FALSE}
 df %>% 
-  mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE)))  ) %>%
-  select(AGE, PTEDUCAT, MMSE, asinsqrtMMSE, everything(), MMSE.Change, -RID, -PTID, -EXAMDATE) %>% # removing factors with too many levels or irrelevant features
+  select(AGE, PTEDUCAT, MMSE, everything(), MMSE.Change, -RID, -PTID, -EXAMDATE) %>% # removing factors with too many levels or irrelevant features
   ggpairs(aes(fill = DX, alpha = 0.7), progress = FALSE)
 
 ```
+
+There are several observations we can make from the plot below.
+
+1) The grid pattern seen in the `MMSE` vs `PTEDUCAT` scatter plot is indicative of two discrete variables.  Indeed, both years of education and MMSE are represented as whole numbers in this dataset.  While this may not have a large impact on our predictive model, it is nevertheless important to recongize the underlying structure of our data.
+2) The distribution of `MMSE` appears to be have a strong left skew. Moreover, this value is relatively weakly correleated with the outcome variable `MMSE.Change`. Later, we will examine how a couple of transforms change the correlation and distribution of `MMSE` and `MMSE.Changed`
+3) Looking by eye, `MMSE.Change` seems relatively comparable between most categorical features and `MMSE` seems to be the only quantitative feature significantly correlated with the aforementioned. `DX` perhaps shows a modestly lower `MMSE.Change` in the case of AD, but the variance is quite large.  
+4) Again by eye, there do not appear to be any very strong linear dependencies between features.
 
 <figure>
   <img src="./img/pairs_colorDX.png", width = "1080">
@@ -149,7 +168,6 @@ df %>%
 </figure>
 
 ```{r}
-# template: https://www.datanovia.com/en/blog/elegant-visualization-of-density-distribution-in-r-using-ridgeline/
 df %>%
   ggplot(aes(x = `MMSE.Change`, y = DX, group = DX, fill = factor(stat(quantile)))) + 
   stat_density_ridges(
@@ -194,6 +212,21 @@ df %>%
 In some groups (CN/EMCI), the line/points clearly indicate subject variability. This variability seems to increase in LMCI and AD.  Note that because the MMSE score is capped at 30, we may have some censoring which could cause the measure of center to shift to the left.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
+
+```{r, fig.width= 12, fig.height=12, message = FALSE, warning = FALSE}
+df %>% 
+  mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE))), logMMSE = log(MMSE+1), MMSE4mo = MMSE + `MMSE.Change`, logMMSE4mo = log(MMSE4mo+1), asinsqrtMMSE4mo = asin(sqrt(minmax(MMSE4mo)))) %>%
+  select(MMSE, asinsqrtMMSE, logMMSE, MMSE.Change, MMSE4mo, logMMSE4mo, asinsqrtMMSE4mo, DX) %>% # removing factors with too many levels or irrelevant features
+  ggpairs(aes(fill = DX, alpha = 0.7), progress = FALSE)
+
+```
+
+<figure>
+  <img src="./img/pairsplotMMSETransforms.png", width = "720">
+  <figcaption><b>Fig 6.</b> MMSE Transforms</figcaption>
+</figure>
+
+Note that of the transforms performed, the asin-sqrt transform of `MMSE4mo` showed the strongest correlation to the baseline `MMSE`.  We will try a model both using the transformed dependent variable and with the raw data.
 
 ### Feature Selection
 
@@ -247,9 +280,10 @@ fviz_mfa_ind(resFAMD,
 
 ## Modeling
 
-* GLM
-* RF
-* Neural Net?
+* General Linear Model
+* Linear Mixed Effects
+* Random Forest
+
 
 ### GLM
 
@@ -303,6 +337,8 @@ Number of Fisher Scoring iterations: 2
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+
+
 ### RF
 
 #### Setup
@@ -345,14 +381,86 @@ DX       26.222985      776.4001
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Neural Net (?)
+
+### Linear Mixed Effects
 
 #### Setup
+```{r}
+lmeMod2 <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
+lmeMod2
+summary(lmeMod2)
+```
 
+```
+Linear mixed-effects model fit by REML
+  Data: df_lme 
+  Log-restricted-likelihood: -989.6201
+  Fixed: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX 
+ (Intercept)          AGE         MMSE PTGENDERMale     PTEDUCAT       APOE41       APOE42       DXEMCI       DXLMCI         DXAD 
+  0.35167737   0.05543014  -0.14411548   0.29307865  -0.03558215  -0.34469115  -0.42067946  -0.01832123  -1.74341427  -5.25577317 
+
+Random effects:
+ Formula: ~1 | PTID
+        (Intercept) Residual
+StdDev:    2.967406 1.112879
+
+Fixed effects:  MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX 
+ Correlation: 
+             (Intr) AGE    MMSE   PTGEND PTEDUC APOE41 APOE42 DXEMCI DXLMCI
+AGE          -0.582                                                        
+MMSE         -0.815  0.093                                                 
+PTGENDERMale  0.054 -0.100  0.008                                          
+PTEDUCAT     -0.193  0.058 -0.121 -0.228                                   
+APOE41       -0.124  0.107  0.028 -0.059  0.092                            
+APOE42       -0.197  0.165  0.105 -0.054  0.077  0.324                     
+DXEMCI       -0.319  0.303  0.148  0.006  0.029 -0.013 -0.036              
+DXLMCI       -0.449  0.112  0.438 -0.021 -0.009 -0.112 -0.087  0.461       
+DXAD         -0.659  0.080  0.736  0.015  0.010 -0.128 -0.064  0.350  0.608
+
+Standardized Within-Group Residuals:
+        Min          Q1         Med          Q3         Max 
+-1.89867440 -0.12633857  0.03271953  0.18422209  0.97386997 
+
+Number of Observations: 384
+Number of Groups: 384 
+
+AIC: 2003.24
+BIC: 2050.331
+logLik: -989.6201	
+
+```
+<figure>
+  <img src="./img/lmeSummary.png", width = "720">
+  <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
+</figure>
+
+
+```{r}
+plot(lmeMod2)
+df_lme$yPred <- predict(lmeMod2)
+
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = yPred)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red")
+
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = round(yPred, 0)) ) +
+  geom_point() +
+  geom_abline(slope = 1, color = "red")
+```
+
+
+
+<figure>
+  <img src="./img/rfPlot.png", width = "720">
+  <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
+</figure>
 
 #### Evaluation
 
 
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 
 ## Discussion

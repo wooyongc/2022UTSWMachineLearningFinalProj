@@ -22,6 +22,8 @@ library(mclust)
 library(corrplot)
 library("FactoMineR")
 library("factoextra")
+library(nlme)
+library(lme4)
 
 minmax <- function(x){
   return( (x - min(x))/(max(x) - min(x))  )
@@ -96,8 +98,16 @@ df %>%
 
 ```{r, fig.width= 18, fig.height=18, message = FALSE, warning = FALSE}
 df %>% 
-  mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE)))  ) %>%
-  select(AGE, PTEDUCAT, MMSE, asinsqrtMMSE, everything(), MMSE.Change, -RID, -PTID, -EXAMDATE) %>% # removing factors with too many levels or irrelevant features
+  #mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE)))  ) %>%
+  select(AGE, PTEDUCAT, MMSE, everything(), MMSE.Change, -RID, -PTID, -EXAMDATE) %>% # removing factors with too many levels or irrelevant features
+  ggpairs(aes(fill = DX, alpha = 0.7), progress = FALSE)
+
+```
+
+```{r, fig.width= 12, fig.height=12, message = FALSE, warning = FALSE}
+df %>% 
+  mutate(asinsqrtMMSE = asin(sqrt(minmax(MMSE))), logMMSE = log(MMSE+1), MMSE4mo = MMSE + `MMSE.Change`, logMMSE4mo = log(MMSE4mo+1), asinsqrtMMSE4mo = asin(sqrt(minmax(MMSE4mo)))) %>%
+  select(MMSE, asinsqrtMMSE, logMMSE, MMSE.Change, MMSE4mo, logMMSE4mo, asinsqrtMMSE4mo, DX) %>% # removing factors with too many levels or irrelevant features
   ggpairs(aes(fill = DX, alpha = 0.7), progress = FALSE)
 
 ```
@@ -185,6 +195,8 @@ df_categorical <- df_clean %>% select(-`MMSE.Change`, -AGE, -MMSE, -PTEDUCAT)
 ```{r}
 gauss <- glm(`MMSE.Change` ~ ., data = df_clean, family = gaussian())
 summary(gauss)
+# RMSE
+sqrt(mean(gauss$residuals ^ 2))
 plot(gauss)
 ```
 
@@ -194,10 +206,67 @@ plot(gauss)
 rf <- randomForest(`MMSE.Change` ~ ., data = df_clean, ntrees = 500, importance = TRUE, type = 'regression')
 y_pred <- predict(rf)
 
+# RMSE
+sqrt(mean(rf$mse))
+
 rf
 plot(rf)
 importance(rf)
 varImpPlot(rf)
+```
+
+# Linear Mixed Effects
+```{r}
+# Subset to only useful features
+df_lme <- df %>% select(-RID, -EXAMDATE)
+df_lme %>% head()
+
+# More subsets
+X_lme <- df_lme %>% select(-`MMSE.Change`)
+```
+
+```{r}
+
+```
+
+
+
+```{r}
+lmeMod <- lme(`MMSE.Change`~ AGE*MMSE*PTGENDER*PTEDUCAT*APOE4*DX, random = ~ 1|PTID, data = df_lme)
+lmeMod
+summary(lmeMod)
+
+```
+```{r}
+lmeMod2 <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
+lmeMod2
+print("RMSE: ")
+sqrt(mean(lmeMod2$residuals ^ 2))
+summary(lmeMod2)
+
+# RMSE
+df_lme$yPred <- predict(lmeMod2)
+
+plot(lmeMod2)
+```
+```{r}
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = yPred)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red")
+
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = round(yPred, 0)) ) +
+  geom_point() +
+  geom_abline(slope = 1, color = "red")
+
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = yPred)) +
+  geom_jitter(height = 0, width = 0.1, alpha = 0.7) +
+  geom_abline(slope = 1, color = "red")
+
+
+
 ```
 
 # PCA 
@@ -222,6 +291,7 @@ fviz_pca_var(resPCA, col.var = "contrib",
 ```
 
 
+
 # FAMD
 ```{r}
 # http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/115-famd-factor-analysis-of-mixed-data-in-r-essentials/
@@ -240,10 +310,6 @@ fviz_mfa_ind(resFAMD,
              repel = TRUE # Avoid text overlapping
              ) 
 ```
-
-
-
-
 
 # Bootstrapping (!?): 
 ```{r}
