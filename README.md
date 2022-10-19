@@ -436,26 +436,18 @@ logLik: -989.6201
 
 
 ```{r}
-plot(lmeMod2)
-df_lme$yPred <- predict(lmeMod2)
-
-df_lme %>%
-  ggplot(aes(x = MMSE.Change, y = yPred)) +
-  geom_point(alpha = 0.7) +
-  geom_abline(slope = 1, color = "red")
-
-df_lme %>%
-  ggplot(aes(x = MMSE.Change, y = round(yPred, 0)) ) +
-  geom_point() +
-  geom_abline(slope = 1, color = "red")
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
 ```
 
 
 
-<figure>
-  <img src="./img/rfPlot.png", width = "720">
-  <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
-</figure>
 
 #### Evaluation
 
@@ -464,6 +456,18 @@ df_lme %>%
 
 
 ## Discussion
+
+<figure>
+  <img src="./img/sqrtAbsPredictionResidualsBetweenModels.png", width = "720">
+  <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
+</figure>
+
+Clearly, on the training set the lme model (especially with rounded prediction) seems to have the smallest error.
+
+<figure>
+  <img src="./img/trainingPredvsTrue.png", width = "720">
+  <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
+</figure>
 
 we found out 
 * This thing

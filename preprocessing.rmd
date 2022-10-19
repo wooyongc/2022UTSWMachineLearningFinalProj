@@ -24,6 +24,7 @@ library("FactoMineR")
 library("factoextra")
 library(nlme)
 library(lme4)
+library("REEMtree")
 
 minmax <- function(x){
   return( (x - min(x))/(max(x) - min(x))  )
@@ -183,6 +184,8 @@ purple - AD
 df_clean <- df %>% select(-RID, -PTID, -EXAMDATE)
 df_clean %>% head()
 
+df_preds <- df %>% select(PTID, MMSE.Change)
+
 # More subsets
 X <- df_clean %>% select(-`MMSE.Change`)
 df_numerical <- df_clean %>% select(-`MMSE.Change`, -PTGENDER, -APOE4, -DX)
@@ -198,13 +201,28 @@ summary(gauss)
 # RMSE
 sqrt(mean(gauss$residuals ^ 2))
 plot(gauss)
+
+df_preds$glm <- predict(gauss)
+
+
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = glm)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red")
+
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = round(glm, 0)) ) +
+  geom_point() +
+  geom_abline(slope = 1, color = "red")
+
+
 ```
 
 
 # Random Forest Regression: 
 ```{r}
 rf <- randomForest(`MMSE.Change` ~ ., data = df_clean, ntrees = 500, importance = TRUE, type = 'regression')
-y_pred <- predict(rf)
+df_preds$rf <- predict(rf)
 
 # RMSE
 sqrt(mean(rf$mse))
@@ -213,6 +231,17 @@ rf
 plot(rf)
 importance(rf)
 varImpPlot(rf)
+
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = rf)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red")
+
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = round(rf, 0)) ) +
+  geom_point() +
+  geom_abline(slope = 1, color = "red")
+
 ```
 
 # Linear Mixed Effects
@@ -226,48 +255,108 @@ X_lme <- df_lme %>% select(-`MMSE.Change`)
 ```
 
 ```{r}
-
-```
-
-
-
-```{r}
-lmeMod <- lme(`MMSE.Change`~ AGE*MMSE*PTGENDER*PTEDUCAT*APOE4*DX, random = ~ 1|PTID, data = df_lme)
+lmeMod <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
 lmeMod
+print("RMSE: ")
+sqrt(mean(lmeMod$residuals ^ 2))
 summary(lmeMod)
 
-```
-```{r}
-lmeMod2 <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
-lmeMod2
-print("RMSE: ")
-sqrt(mean(lmeMod2$residuals ^ 2))
-summary(lmeMod2)
-
 # RMSE
-df_lme$yPred <- predict(lmeMod2)
+df_preds$lme <- predict(lmeMod)
 
-plot(lmeMod2)
+plot(lmeMod)
 ```
+
+
 ```{r}
-df_lme %>%
-  ggplot(aes(x = MMSE.Change, y = yPred)) +
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = lme)) +
   geom_point(alpha = 0.7) +
   geom_abline(slope = 1, color = "red")
 
-df_lme %>%
-  ggplot(aes(x = MMSE.Change, y = round(yPred, 0)) ) +
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = round(lme, 0)) ) +
   geom_point() +
   geom_abline(slope = 1, color = "red")
 
-df_lme %>%
-  ggplot(aes(x = MMSE.Change, y = yPred)) +
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = lme)) +
   geom_jitter(height = 0, width = 0.1, alpha = 0.7) +
   geom_abline(slope = 1, color = "red")
 
 
 
 ```
+```{r}
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+    
+
+
+```
+
+
+```{r}
+lmeMod2 <- lme(`MMSE.Change`~ AGE+PTGENDER+PTEDUCAT+APOE4+DX*MMSE, random = ~ 1|PTID, data = df_lme)
+lmeMod2
+print("RMSE: ")
+sqrt(mean(lmeMod2$residuals ^ 2))
+summary(lmeMod2)
+
+# RMSE
+df_lme$lme2_yPred <- predict(lmeMod2)
+
+plot(lmeMod2)
+```
+
+
+```{r}
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = lme2_yPred)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red")
+
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = round(lme2_yPred, 0)) ) +
+  geom_point() +
+  geom_abline(slope = 1, color = "red")
+
+
+```
+
+
+
+# Random Forest Mixed Effects Regression: 
+```{r}
+rf2 <- randomForest(`MMSE.Change` ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
+df_lme$rf2_ypred <- predict(rf2)
+
+# RMSE
+sqrt(mean(rf2$mse))
+
+rf2
+plot(rf2)
+importance(rf2)
+varImpPlot(rf2)
+
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = rf2_ypred)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red")
+
+df_lme %>%
+  ggplot(aes(x = MMSE.Change, y = round(rf2_ypred, 0)) ) +
+  geom_point() +
+  geom_abline(slope = 1, color = "red")
+
+```
+
 
 # PCA 
 ```{r}
