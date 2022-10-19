@@ -226,7 +226,7 @@ df %>%
   <figcaption><b>Fig 6.</b> MMSE Transforms</figcaption>
 </figure>
 
-Note that of the transforms performed, the asin-sqrt transform of `MMSE4mo` showed the strongest correlation to the baseline `MMSE`.  We will try a model both using the transformed dependent variable and with the raw data.
+Note that of the transforms performed, the asin-sqrt transform of `MMSE4mo` showed the strongest correlation to the baseline `MMSE`. If necessary, we will try a model both using the transformed dependent variable and with the raw data.
 
 ### Feature Selection
 
@@ -234,9 +234,9 @@ Note that of the transforms performed, the asin-sqrt transform of `MMSE4mo` show
 
 In order to see if our data can be condensed, we tried PCA and FAMD for dimensionality reduction.
 
-(spoilers, neither helps too much)
-
 * PCA
+
+PCA is only used on the numerical columns present in the dataset (i.e. `AGE`, `PTEDUCAT`, and `MMSE`). If these features are collinear, we would expect that one of the principle component axes to be a combination of the two features an to explain a proportionally larger amount of variance. 
 
 ```
 resPCA <- PCA(df_numerical) # Note, this automatically scales the data
@@ -255,7 +255,11 @@ fviz_pca_var(resPCA, col.var = "contrib",
   <figcaption><b>Fig 6.</b> PCA plot of numerical variables.</figcaption>
 </figure>
 
+Here we can see that while there appears to be some overlap in information of `PTEDUCAT` and `MMSE`, the increase is not large enough, in our opinion, to justify using the PCA columns compared to the raw features.  This is in part due to the relative difficulty of explaining feature importances in PCA space.
+
 * FAMD
+
+FAMD (or Factor Analysis of Mixed Data) can be summarized as PCA which can tolerate categorical variables. Similar to the PCA, we are looking for collinearity/redundancy of information in our dataset.
 
 ```{r}
 resFAMD <- FAMD(X)
@@ -276,14 +280,15 @@ fviz_mfa_ind(resFAMD,
   <figcaption><b>Fig 7.</b> FAMD plots variables.</figcaption>
 </figure>
 
+Again similar to PCA, the features appear (for the most part) to represent independent information.  Once again, we do not consider the amount of varince explained to be large enough to justify the increased difficulty in model interpretability.
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Modeling
 
 * General Linear Model
-* Linear Mixed Effects
 * Random Forest
-
+* Linear Mixed Effects
 
 ### GLM
 
@@ -331,13 +336,11 @@ Number of Fisher Scoring iterations: 2
   <figcaption><b>Fig 6.</b> GLM Regression Plots.</figcaption>
 </figure>
 
+The RMSE of our model was calculated to be: `RMSE: 3.127688`.  
 
-#### Evaluation
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
-
-
 
 ### RF
 
@@ -376,8 +379,7 @@ DX       26.222985      776.4001
   <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
 </figure>
 
-#### Evaluation
-
+The RMSE of our model was calculated to be: `RMSE: 3.244548`.  
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -434,17 +436,9 @@ logLik: -989.6201
   <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
 </figure>
 
+The RMSE of our model was calculated to be: `RMSE: 2.22836`.  
 
-```{r}
-df_preds %>% 
-  mutate(lme_rounded = round(lme, 0)) %>%
-  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
-  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
-  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
-    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
-    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
-    theme_minimal()
-```
+
 
 
 
@@ -457,6 +451,16 @@ df_preds %>%
 
 ## Discussion
 
+```{r}
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+```
 <figure>
   <img src="./img/sqrtAbsPredictionResidualsBetweenModels.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
@@ -464,20 +468,27 @@ df_preds %>%
 
 Clearly, on the training set the lme model (especially with rounded prediction) seems to have the smallest error.
 
+
+```{r}
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
+  mutate(model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
+  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) + 
+    geom_point(alpha = 0.7) +
+    geom_abline(slope = 1, color = "red") +
+    theme_minimal() +
+    facet_wrap(~model)
+```
 <figure>
   <img src="./img/trainingPredvsTrue.png", width = "720">
-  <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
+  <figcaption><b>Fig .</b> Comparisons of prediction error between models.</figcaption>
 </figure>
 
-we found out 
-* This thing
-* And that thing
 
 ## Conclusions
 
-* A short sentence summary of our work
-* A brief aside on Limitations
-* Future directions may include
+
 
 
 
@@ -487,8 +498,8 @@ we found out
 ## Project Contributions
 
 * Austin Marckx - Austin.Marckx@UTSouthwestern.edu
-  * I did this thing
-  * And that thing
+  * Preprocessing
+  * Preliminary GLM, RF, LME model creation evaluation
 
 * Noah Chang - WooYong.Chang@UTSouthwestern.edu
   * I did this other thing
