@@ -535,7 +535,7 @@ df_preds %>%
     theme_minimal()
 ```
 <figure>
-  <img src="./img/sqrtAbsPredictionResidualsBetweenModels.png", width = "720">
+  <img src="./img/sqrtAbsPredictionResidualsBetweenModels2.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
 </figure>
 
@@ -554,7 +554,7 @@ df_preds %>%
     facet_wrap(~model)
 ```
 <figure>
-  <img src="./img/trainingPredvsTrue.png", width = "720">
+  <img src="./img/trainingPredvsTrue2.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of prediction error between models.</figcaption>
 </figure>
 
