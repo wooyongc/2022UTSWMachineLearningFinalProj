@@ -144,7 +144,7 @@ Note that levels of the DX (diagnosis) column are as follows:
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-After a cursory examination of the dataset, it is important to realize here that our relevant feature space is _extremely_ limited.  Of the 10 original columns in the dataset, 1 (`MMSE.Change`) is the response variable, and 3 (`RID`, `PTID`, `EXAMDATE`) have minimal-no predictive information.  This leaves only 6 columns for training on a dataset with 384 entries. In short, unless there are very dominant features with extremely high predictive value, this is very little data for a very complicated problem and this will likely result in relatively high variance in the regressive models.
+After a cursory examination of the dataset, it is important to realize here that our relevant feature space is _extremely_ limited.  Of the 10 original columns in the dataset, 1 (`MMSE.Change`) is the response variable, and 3 (`RID`, `PTID`, `EXAMDATE`) have minimal-no predictive information in isolation.  This leaves only 6 columns for training on a dataset with 384 entries. In short, unless there are very dominant features with extremely high predictive value, this is very little data for a very complicated problem and this will likely result in relatively high variance in the regressive models.
 
 ### Exploratory Plotting
 
@@ -230,7 +230,7 @@ Note that of the transforms performed, the asin-sqrt transform of `MMSE4mo` show
 
 ### Feature Selection
 
-`RID`, `PTID`, `EXAMDATE` have minimal-no predictive information and we will drop these values for all models.
+`RID` and `EXAMDATE` have minimal-no predictive information and we will drop these values for all models. `PTID` will only be included in the linear mixed effects model as a random effect.
 
 In order to see if our data can be condensed, we tried PCA and FAMD for dimensionality reduction.
 
@@ -438,7 +438,56 @@ logLik: -989.6201
 
 The RMSE of our model was calculated to be: `RMSE: 2.22836`.  
 
+### Bayesian Mixed effects:
 
+```{r}
+bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1 + DX|PTID), data = df_lme)
+df_preds$bme <- predict(bme)
+summary(bme)
+```
+
+```
+  Links: mu = identity; sigma = identity 
+Formula: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX + (1 + DX | PTID) 
+   Data: df_lme (Number of observations: 384) 
+  Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+         total post-warmup draws = 4000
+
+Group-Level Effects: 
+~PTID (Number of levels: 384) 
+                      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)             0.58      0.34     0.03     1.18 1.06       58      109
+sd(DXEMCI)                1.33      0.36     0.66     2.11 1.02      326      324
+sd(DXLMCI)                2.60      0.34     1.95     3.28 1.04      102      298
+sd(DXAD)                  3.31      0.43     2.46     4.17 1.01      372      558
+cor(Intercept,DXEMCI)     0.03      0.43    -0.78     0.81 1.02      270      677
+cor(Intercept,DXLMCI)     0.03      0.43    -0.79     0.80 1.09       39      277
+cor(DXEMCI,DXLMCI)        0.03      0.43    -0.80     0.79 1.06       66      323
+cor(Intercept,DXAD)       0.09      0.44    -0.74     0.82 1.02      168      480
+cor(DXEMCI,DXAD)         -0.02      0.44    -0.81     0.79 1.03      201      526
+cor(DXLMCI,DXAD)          0.05      0.43    -0.78     0.80 1.01      330      517
+
+Population-Level Effects: 
+             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept       11.25      2.60     6.07    16.41 1.00     2189     2653
+AGE              0.01      0.02    -0.03     0.04 1.00     3614     2922
+MMSE            -0.42      0.08    -0.57    -0.26 1.00     1940     2273
+PTGENDERMale     0.12      0.20    -0.27     0.50 1.00     2410     2330
+PTEDUCAT         0.02      0.04    -0.06     0.10 1.00     3404     2992
+APOE41          -0.12      0.22    -0.55     0.32 1.00     3852     2762
+APOE42          -0.58      0.39    -1.35     0.18 1.00     3322     2625
+DXEMCI          -0.52      0.29    -1.11     0.04 1.00     2845     3120
+DXLMCI          -2.21      0.32    -2.84    -1.59 1.00     2134     2875
+DXAD            -5.78      0.64    -7.06    -4.53 1.00     2144     2360
+
+Family Specific Parameters: 
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma     1.08      0.21     0.60     1.41 1.10       48       62
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1).
+```
 
 
 
@@ -450,6 +499,30 @@ The RMSE of our model was calculated to be: `RMSE: 2.22836`.
 
 
 ## Discussion
+
+```
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme")) ) %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+
+
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme")) ) %>%
+  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) + 
+    geom_point(alpha = 0.7) +
+    geom_abline(slope = 1, color = "red") +
+    theme_minimal() +
+    facet_wrap(~model)
+```
+
+
 
 ```{r}
 df_preds %>% 
@@ -498,8 +571,8 @@ df_preds %>%
 ## Project Contributions
 
 * Austin Marckx - Austin.Marckx@UTSouthwestern.edu
-  * Preprocessing
-  * Preliminary GLM, RF, LME model creation evaluation
+  * Preprocessing & feature selection
+  * Preliminary GLM, RF, LME creation & evaluation
 
 * Noah Chang - WooYong.Chang@UTSouthwestern.edu
   * I did this other thing

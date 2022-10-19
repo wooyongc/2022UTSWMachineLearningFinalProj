@@ -25,6 +25,8 @@ library("factoextra")
 library(nlme)
 library(lme4)
 library("REEMtree")
+library(brms)
+library(rstatix)
 
 minmax <- function(x){
   return( (x - min(x))/(max(x) - min(x))  )
@@ -184,6 +186,12 @@ purple - AD
 df_clean <- df %>% select(-RID, -PTID, -EXAMDATE)
 df_clean %>% head()
 
+# Optional
+df_clean <- df2 <- df_clean %>% mutate(`MMSE.Change.Filtered` = ifelse(MMSE.Change < -8, -8, MMSE.Change))
+# Remove non predictive features
+#identify_outliers(df_clean %>% dplyr::select(MMSE.Change))
+
+
 df_preds <- df %>% select(PTID, MMSE.Change)
 
 # More subsets
@@ -191,6 +199,7 @@ X <- df_clean %>% select(-`MMSE.Change`)
 df_numerical <- df_clean %>% select(-`MMSE.Change`, -PTGENDER, -APOE4, -DX)
 df_categorical <- df_clean %>% select(-`MMSE.Change`, -AGE, -MMSE, -PTEDUCAT)
 ```
+
 
 # GLM Regression
 
@@ -287,19 +296,6 @@ df_preds %>%
 
 
 ```
-```{r}
-df_preds %>% 
-  mutate(lme_rounded = round(lme, 0)) %>%
-  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
-  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
-  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
-    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
-    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
-    theme_minimal()
-    
-
-
-```
 
 
 ```{r}
@@ -334,26 +330,41 @@ df_lme %>%
 
 # Random Forest Mixed Effects Regression: 
 ```{r}
-rf2 <- randomForest(`MMSE.Change` ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
-df_lme$rf2_ypred <- predict(rf2)
+bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1|PTID), data = df_lme)
+df_preds$bme <- predict(bme)
 
+summary(bme)
 # RMSE
-sqrt(mean(rf2$mse))
+```
 
-rf2
-plot(rf2)
-importance(rf2)
-varImpPlot(rf2)
+```{r}
+df_preds %>% str()
+df_preds$bme <- df_preds$bme[,1]
 
-df_lme %>%
-  ggplot(aes(x = MMSE.Change, y = rf2_ypred)) +
-  geom_point(alpha = 0.7) +
-  geom_abline(slope = 1, color = "red")
+df_preds <- df_preds %>% select(-bmepreds)
+```
 
-df_lme %>%
-  ggplot(aes(x = MMSE.Change, y = round(rf2_ypred, 0)) ) +
-  geom_point() +
-  geom_abline(slope = 1, color = "red")
+```{r}
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme")) ) %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+
+
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme")) ) %>%
+  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) + 
+    geom_point(alpha = 0.7) +
+    geom_abline(slope = 1, color = "red") +
+    theme_minimal() +
+    facet_wrap(~model)
+
 
 ```
 
@@ -425,10 +436,18 @@ gmm <- Mclust(df_numerical)
 summary(gmm)
 plot(gmm, what = "BIC")
 plot(gmm, what = "classification")
+
+
 ```
 
+```{r}
 
-
+```
+```{r}
+Sys.setenv(MAKEFLAGS = paste0("-j",parallel::detectCores()))
+install.packages(c("StanHeaders","rstan"),type="source")
+example(stan_model, package = "rstan", run.dontrun = TRUE)
+```
 
 
 
