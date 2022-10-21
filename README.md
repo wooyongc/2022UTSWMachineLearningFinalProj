@@ -234,7 +234,7 @@ Note that of the transforms performed, the asin-sqrt transform of `MMSE4mo` show
 
 In order to see if our data can be condensed, we tried PCA and FAMD for dimensionality reduction.
 
-* PCA
+#### PCA
 
 PCA is only used on the numerical columns present in the dataset (i.e. `AGE`, `PTEDUCAT`, and `MMSE`). If these features are collinear, we would expect that one of the principle component axes to be a combination of the two features an to explain a proportionally larger amount of variance. 
 
@@ -257,7 +257,7 @@ fviz_pca_var(resPCA, col.var = "contrib",
 
 Here we can see that while there appears to be some overlap in information of `PTEDUCAT` and `MMSE`, the increase is not large enough, in our opinion, to justify using the PCA columns compared to the raw features.  This is in part due to the relative difficulty of explaining feature importances in PCA space.
 
-* FAMD
+#### FAMD
 
 FAMD (or Factor Analysis of Mixed Data) can be summarized as PCA which can tolerate categorical variables. Similar to the PCA, we are looking for collinearity/redundancy of information in our dataset.
 
@@ -289,6 +289,7 @@ Again similar to PCA, the features appear (for the most part) to represent indep
 * General Linear Model
 * Random Forest
 * Linear Mixed Effects
+* Bayesian Mixed Effects
 
 ### GLM
 
@@ -296,7 +297,6 @@ Again similar to PCA, the features appear (for the most part) to represent indep
 ```{r}
 gauss <- glm(`MMSE.Change` ~ ., data = df_clean, family = gaussian())
 summary(gauss)
-plot(gauss)
 ```
 
 ```
@@ -331,14 +331,16 @@ AIC: 1987.5
 Number of Fisher Scoring iterations: 2
 ```
 
+The RMSE of our model was calculated to be: `RMSE: 3.127688`. 
+
 <figure>
-  <img src="./img/glmGaussianPlot.png", width = "720">
+  <img src="./img/GLM_predVsTrue.png", width = "720">
   <figcaption><b>Fig 6.</b> GLM Regression Plots.</figcaption>
 </figure>
 
-The RMSE of our model was calculated to be: `RMSE: 3.127688`.  
+Between the plot of the prediction error and RMSE, it appears quite clear that the basic GLM is not a very good predictor of the data.
 
-
+In terms of feature importances, the only significant coefficients (after p.value correction) are in the feature `DX` (specifically `LMCI` and `AD`) which as shown above were the two classes with visually different distributions of MMSE score at baseline and at 4 months.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -347,8 +349,6 @@ The RMSE of our model was calculated to be: `RMSE: 3.127688`.
 #### Setup
 ```{r}
 rf <- randomForest(`MMSE.Change` ~ ., data = df_clean, ntrees = 500, importance = TRUE, type = 'regression')
-y_pred <- predict(rf)
-
 rf
 plot(rf)
 importance(rf)
@@ -374,12 +374,19 @@ DX       26.222985      776.4001
 
 ```
 
+The RMSE of our model was calculated to be: `RMSE: 3.244548`.
+
 <figure>
   <img src="./img/rfPlot.png", width = "720">
   <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
 </figure>
+  
+<figure>
+  <img src="./img/RF_predVsTrue.png", width = "720">
+  <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
+</figure>
 
-The RMSE of our model was calculated to be: `RMSE: 3.244548`.  
+Similar to the GLM, the Random Forest model struggles to give good predictions. In terms of feature importances, once again `DX` is quite important in decreasing the MSE.  The baseline MMSE also surfaces as an important predictor of the MMSE Change.  That said, the RMSE is once again quite large.  
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -438,6 +445,21 @@ logLik: -989.6201
 
 The RMSE of our model was calculated to be: `RMSE: 2.22836`.  
 
+First note ththat the coefficients mentioned here: 
+> Fixed: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX 
+ (Intercept)          AGE         MMSE PTGENDERMale     PTEDUCAT       APOE41       APOE42       DXEMCI       DXLMCI         DXAD 
+  0.35167737   0.05543014  -0.14411548   0.29307865  -0.03558215  -0.34469115  -0.42067946  -0.01832123  -1.74341427  -5.25577317 
+
+are exactly the same as those above in the GLM.  
+
+<figure>
+  <img src="./img/LME_predVsTrue.png", width = "720">
+  <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
+</figure>
+
+However, by including the Patient ID as a random effects term we allow for each subject to be independently impacted by the fixed effects of Age, Diagnosis, etc. In short, if we control for the variance of an individual, the fixed effects are actually a fairly good predictor of the future score of that same individual.
+
+
 ### Bayesian Mixed effects:
 
 ```{r}
@@ -445,8 +467,10 @@ bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1 + DX|PTID), da
 df_preds$bme <- predict(bme)
 summary(bme)
 ```
+The intercept as well as the Diagnosis effect is impacted by the individual patient
 
 ```
+ Family: gaussian 
   Links: mu = identity; sigma = identity 
 Formula: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX + (1 + DX | PTID) 
    Data: df_lme (Number of observations: 384) 
@@ -456,37 +480,37 @@ Formula: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX + (1 + DX |
 Group-Level Effects: 
 ~PTID (Number of levels: 384) 
                       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sd(Intercept)             0.58      0.34     0.03     1.18 1.06       58      109
-sd(DXEMCI)                1.33      0.36     0.66     2.11 1.02      326      324
-sd(DXLMCI)                2.60      0.34     1.95     3.28 1.04      102      298
-sd(DXAD)                  3.31      0.43     2.46     4.17 1.01      372      558
-cor(Intercept,DXEMCI)     0.03      0.43    -0.78     0.81 1.02      270      677
-cor(Intercept,DXLMCI)     0.03      0.43    -0.79     0.80 1.09       39      277
-cor(DXEMCI,DXLMCI)        0.03      0.43    -0.80     0.79 1.06       66      323
-cor(Intercept,DXAD)       0.09      0.44    -0.74     0.82 1.02      168      480
-cor(DXEMCI,DXAD)         -0.02      0.44    -0.81     0.79 1.03      201      526
-cor(DXLMCI,DXAD)          0.05      0.43    -0.78     0.80 1.01      330      517
+sd(Intercept)             0.68      0.33     0.04     1.19 1.06       58      179
+sd(DXEMCI)                1.32      0.37     0.63     2.13 1.06      180      226
+sd(DXLMCI)                3.22      0.41     2.38     3.96 1.10       32      196
+sd(DXAD)                  5.34      0.58     4.25     6.44 1.02      233      600
+cor(Intercept,DXEMCI)     0.03      0.41    -0.75     0.79 1.03      153      382
+cor(Intercept,DXLMCI)    -0.02      0.44    -0.79     0.83 1.08       41      101
+cor(DXEMCI,DXLMCI)       -0.06      0.46    -0.83     0.79 1.11       31      339
+cor(Intercept,DXAD)       0.03      0.43    -0.77     0.82 1.04      148      443
+cor(DXEMCI,DXAD)          0.01      0.44    -0.82     0.83 1.06      205      376
+cor(DXLMCI,DXAD)          0.05      0.47    -0.83     0.82 1.03       92      427
 
 Population-Level Effects: 
              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-Intercept       11.25      2.60     6.07    16.41 1.00     2189     2653
-AGE              0.01      0.02    -0.03     0.04 1.00     3614     2922
-MMSE            -0.42      0.08    -0.57    -0.26 1.00     1940     2273
-PTGENDERMale     0.12      0.20    -0.27     0.50 1.00     2410     2330
-PTEDUCAT         0.02      0.04    -0.06     0.10 1.00     3404     2992
-APOE41          -0.12      0.22    -0.55     0.32 1.00     3852     2762
-APOE42          -0.58      0.39    -1.35     0.18 1.00     3322     2625
-DXEMCI          -0.52      0.29    -1.11     0.04 1.00     2845     3120
-DXLMCI          -2.21      0.32    -2.84    -1.59 1.00     2134     2875
-DXAD            -5.78      0.64    -7.06    -4.53 1.00     2144     2360
+Intercept       13.36      2.75     7.69    18.23 1.02      181     2518
+AGE              0.00      0.02    -0.03     0.04 1.02      325     1660
+MMSE            -0.48      0.08    -0.63    -0.32 1.02      346     2615
+PTGENDERMale     0.06      0.20    -0.31     0.46 1.01     3554     3043
+PTEDUCAT         0.03      0.04    -0.05     0.12 1.01     1100      919
+APOE41          -0.10      0.21    -0.53     0.33 1.01     3125     3114
+APOE42          -0.58      0.41    -1.39     0.24 1.01     1301     2359
+DXEMCI          -0.59      0.28    -1.12    -0.02 1.04     2683     2491
+DXLMCI          -2.52      0.39    -3.21    -1.77 1.04       89      471
+DXAD            -7.08      0.82    -8.68    -5.61 1.02      251     1637
 
 Family Specific Parameters: 
       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sigma     1.08      0.21     0.60     1.41 1.10       48       62
+sigma     1.00      0.23     0.58     1.38 1.07       48       63
 
 Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
 and Tail_ESS are effective sample size measures, and Rhat is the potential
-scale reduction factor on split chains (at convergence, Rhat = 1).
+scale reduction factor on split chains (at convergence, Rhat = 1)
 ```
 
 
@@ -500,30 +524,6 @@ scale reduction factor on split chains (at convergence, Rhat = 1).
 
 ## Discussion
 
-```
-df_preds %>% 
-  mutate(lme_rounded = round(lme, 0)) %>%
-  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
-  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme")) ) %>%
-  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
-    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
-    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
-    theme_minimal()
-
-
-df_preds %>% 
-  mutate(lme_rounded = round(lme, 0)) %>%
-  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
-  mutate(model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme")) ) %>%
-  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) + 
-    geom_point(alpha = 0.7) +
-    geom_abline(slope = 1, color = "red") +
-    theme_minimal() +
-    facet_wrap(~model)
-```
-
-
-
 ```{r}
 df_preds %>% 
   mutate(lme_rounded = round(lme, 0)) %>%
@@ -535,7 +535,7 @@ df_preds %>%
     theme_minimal()
 ```
 <figure>
-  <img src="./img/sqrtAbsPredictionResidualsBetweenModels.png", width = "720">
+  <img src="./img/sqrtAbsPredictionResidualsBetweenModels2.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
 </figure>
 
@@ -554,7 +554,7 @@ df_preds %>%
     facet_wrap(~model)
 ```
 <figure>
-  <img src="./img/trainingPredvsTrue.png", width = "720">
+  <img src="./img/trainingPredvsTrue2.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of prediction error between models.</figcaption>
 </figure>
 
@@ -572,10 +572,10 @@ df_preds %>%
 
 * Austin Marckx - Austin.Marckx@UTSouthwestern.edu
   * Preprocessing & feature selection
-  * Preliminary GLM, RF, LME creation & evaluation
+  * GLM, RF, LME, and BME creation & evaluation
 
 * Noah Chang - WooYong.Chang@UTSouthwestern.edu
-  * I did this other thing
+  * Data Augmentation
   * And that other thing
 
 Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj](https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj)

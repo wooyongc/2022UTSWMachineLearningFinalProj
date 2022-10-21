@@ -187,17 +187,26 @@ df_clean <- df %>% select(-RID, -PTID, -EXAMDATE)
 df_clean %>% head()
 
 # Optional
-df_clean <- df2 <- df_clean %>% mutate(`MMSE.Change.Filtered` = ifelse(MMSE.Change < -8, -8, MMSE.Change))
+df_clean <- df_clean #%>% mutate(`MMSE.Change` = ifelse(MMSE.Change < -8, -8, MMSE.Change))
 # Remove non predictive features
 #identify_outliers(df_clean %>% dplyr::select(MMSE.Change))
 
 
-df_preds <- df %>% select(PTID, MMSE.Change)
+df_preds <- df %>% select(PTID, MMSE.Change)# %>% mutate(`MMSE.Change` = ifelse(MMSE.Change < -8, -8, MMSE.Change))
 
 # More subsets
 X <- df_clean %>% select(-`MMSE.Change`)
 df_numerical <- df_clean %>% select(-`MMSE.Change`, -PTGENDER, -APOE4, -DX)
 df_categorical <- df_clean %>% select(-`MMSE.Change`, -AGE, -MMSE, -PTEDUCAT)
+```
+
+```{r}
+# Subset to only useful features
+df_lme <- df %>% select(-RID, -EXAMDATE) #%>% mutate(`MMSE.Change` = ifelse(MMSE.Change < -8, -8, MMSE.Change))
+df_lme %>% head()
+
+# More subsets
+X_lme <- df_lme %>% select(-`MMSE.Change`)
 ```
 
 
@@ -206,18 +215,18 @@ df_categorical <- df_clean %>% select(-`MMSE.Change`, -AGE, -MMSE, -PTEDUCAT)
 ## gaussian
 ```{r}
 gauss <- glm(`MMSE.Change` ~ ., data = df_clean, family = gaussian())
+coef(summary(gauss))[,4]
 summary(gauss)
 # RMSE
 sqrt(mean(gauss$residuals ^ 2))
 plot(gauss)
 
 df_preds$glm <- predict(gauss)
-
-
 df_preds %>%
   ggplot(aes(x = MMSE.Change, y = glm)) +
   geom_point(alpha = 0.7) +
-  geom_abline(slope = 1, color = "red")
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
 
 df_preds %>%
   ggplot(aes(x = MMSE.Change, y = round(glm, 0)) ) +
@@ -244,7 +253,8 @@ varImpPlot(rf)
 df_preds %>%
   ggplot(aes(x = MMSE.Change, y = rf)) +
   geom_point(alpha = 0.7) +
-  geom_abline(slope = 1, color = "red")
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
 
 df_preds %>%
   ggplot(aes(x = MMSE.Change, y = round(rf, 0)) ) +
@@ -254,14 +264,7 @@ df_preds %>%
 ```
 
 # Linear Mixed Effects
-```{r}
-# Subset to only useful features
-df_lme <- df %>% select(-RID, -EXAMDATE)
-df_lme %>% head()
 
-# More subsets
-X_lme <- df_lme %>% select(-`MMSE.Change`)
-```
 
 ```{r}
 lmeMod <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
@@ -327,21 +330,66 @@ df_lme %>%
 ```
 
 
-
-# Random Forest Mixed Effects Regression: 
+# Bayesian Mixed Effects Regression: 
 ```{r}
-bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1|PTID), data = df_lme)
+bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1 + DX|PTID), data = df_lme)
 df_preds$bme <- predict(bme)
-
 summary(bme)
-# RMSE
 ```
+```{r}
+
+```
+-- it seems like there is a small improvement in performance after increasing the num of iterations
+
+Family: gaussian 
+  Links: mu = identity; sigma = identity 
+Formula: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX + (1 + DX | PTID) 
+   Data: df_lme (Number of observations: 384) 
+  Draws: 4 chains, each with iter = 3000; warmup = 1500; thin = 1;
+         total post-warmup draws = 6000
+
+Group-Level Effects: 
+~PTID (Number of levels: 384) 
+                      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)             0.74      0.37     0.04     1.31 1.08       36       42
+sd(DXEMCI)                1.30      0.41     0.52     2.09 1.05       86      257
+sd(DXLMCI)                3.07      0.41     2.31     3.94 1.08       55      269
+sd(DXAD)                  5.26      0.62     4.13     6.54 1.02      232      777
+cor(Intercept,DXEMCI)     0.05      0.43    -0.75     0.82 1.03      157      436
+cor(Intercept,DXLMCI)     0.19      0.42    -0.67     0.87 1.12       26      175
+cor(DXEMCI,DXLMCI)        0.02      0.42    -0.78     0.80 1.03      120      372
+cor(Intercept,DXAD)       0.07      0.43    -0.78     0.80 1.01      187      356
+cor(DXEMCI,DXAD)          0.02      0.47    -0.85     0.84 1.03      156      416
+cor(DXLMCI,DXAD)         -0.01      0.45    -0.82     0.79 1.03      169      640
+
+Population-Level Effects: 
+             Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+Intercept       13.10      2.74     7.69    18.38 1.00     1510     3600
+AGE              0.00      0.02    -0.03     0.04 1.00     2866     3334
+MMSE            -0.48      0.08    -0.64    -0.32 1.01      952     3324
+PTGENDERMale     0.07      0.20    -0.34     0.46 1.01     2989     2519
+PTEDUCAT         0.03      0.04    -0.05     0.11 1.00     2704     3190
+APOE41          -0.09      0.23    -0.55     0.34 1.00     1104     3568
+APOE42          -0.56      0.44    -1.44     0.26 1.02      248       54
+DXEMCI          -0.58      0.29    -1.15    -0.02 1.01     2680     3806
+DXLMCI          -2.49      0.37    -3.21    -1.77 1.00     2261     3274
+DXAD            -7.15      0.81    -8.76    -5.53 1.00     1797     2783
+
+Family Specific Parameters: 
+      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sigma     0.95      0.28     0.39     1.38 1.10       31       29
+
+Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
+and Tail_ESS are effective sample size measures, and Rhat is the potential
+scale reduction factor on split chains (at convergence, Rhat = 1)
+
+
 
 ```{r}
 df_preds %>% str()
 df_preds$bme <- df_preds$bme[,1]
 
-df_preds <- df_preds %>% select(-bmepreds)
+#df_preds <- df_preds %>% select(-bmepreds)
 ```
 
 ```{r}
@@ -365,7 +413,40 @@ df_preds %>%
     theme_minimal() +
     facet_wrap(~model)
 
+```
 
+
+```{r}
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme")) ) %>%
+  ggplot(aes(x = MMSE.Change, y = ypred)) + 
+    stat_binhex(alpha = 0.7, binwidth = c(0.5, 0.5)) +
+    geom_abline(slope = 1, color = "red") +
+    theme_minimal() +
+    facet_wrap(~model)
+
+
+
+df_preds %>% 
+  #mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(ypred = round(ypred, 0)) %>%
+  mutate(model = factor(model, levels = c("rf", "glm", "lme", "bme")) ) %>%
+  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) + 
+    geom_count(alpha = 0.7, aes(size = after_stat(prop))) +
+    geom_abline(slope = 1, color = "red") +
+    theme_minimal() +
+    facet_wrap(~model)
+```
+
+
+```{r}
+pp_check(bme, ndraws = 30)
+#https://towardsdatascience.com/evaluating-bayesian-mixed-models-in-r-python-27d344a03016
+#http://mjskay.github.io/tidybayes/
+#https://htmlpreview.github.io/?https://github.com/ecoronado92/towards_data_science/blob/master/hierarchical_models/bayes_lmm/loo_pit_example/loo_pit.html
 ```
 
 
@@ -412,7 +493,7 @@ fviz_mfa_ind(resFAMD,
 ```
 
 # Bootstrapping (!?): 
-```{r}
+```{r, eval = FALSE}
 #https://www.statmethods.net/advstats/bootstrapping.html
 bs <- function(formula, data, indices) {
   d <- data[indices,] # allows boot to select sample
@@ -431,7 +512,7 @@ boot.ci(results, index = 10)
 
 
 # Gaussian Mixture: 
-```{r, fig.height = 12, fig.width=12}
+```{r,eval = FALSE, fig.height = 12, fig.width=12}
 gmm <- Mclust(df_numerical)
 summary(gmm)
 plot(gmm, what = "BIC")
@@ -439,41 +520,6 @@ plot(gmm, what = "classification")
 
 
 ```
-
-```{r}
-
-```
-```{r}
-Sys.setenv(MAKEFLAGS = paste0("-j",parallel::detectCores()))
-install.packages(c("StanHeaders","rstan"),type="source")
-example(stan_model, package = "rstan", run.dontrun = TRUE)
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ```{r}
 sessionInfo()
