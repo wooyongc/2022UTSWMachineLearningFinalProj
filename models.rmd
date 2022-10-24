@@ -100,7 +100,7 @@ test$rf_test <- predict(rf, newdata = test)
 # Linear Mixed Effects
 
 ```{r}
-linMixEff <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|MMSE/DX, data = train)
+linMixEff <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4 , random = ~ 1|DX, data = train)
 linMixEff
 print("RMSE: ")
 sqrt(mean(linMixEff$residuals ^ 2))
@@ -116,7 +116,7 @@ test$linMixEff_test <- predict(linMixEff, newdata = test)
 
 # Bayesian Mixed Effects Regression: 
 ```{r}
-bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1|DX), data = train)
+bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4 + (1|DX), data = train)
 summary(bme)
 pp_check(bme, ndraws = 30)
 
@@ -127,15 +127,15 @@ test$bme_test <- predict(bme, newdata = test)[,1]
 ```
 # RMSE:
 ```{r}
-train <- train %>%
+train2 <- train %>%
   pivot_longer(cols = c(glm_train, rf_train, linMixEff_train, bme_train), names_to = "model", values_to = "ypred") %>%
   mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf_train","glm_train", "linMixEff_train", "bme_train")) ) #%>%
 
-test <- test %>%
+test2 <- test %>%
   pivot_longer(cols = c(glm_test, rf_test, linMixEff_test, bme_test), names_to = "model", values_to = "ypred") %>%
   mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf_test","glm_test", "linMixEff_test", "bme_test")) )
 
-results <- train %>% bind_rows(test)
+results <- train2 %>% bind_rows(test2)
 ```
 
 
@@ -162,24 +162,31 @@ results %>%
 ```
 
 ```{r, fig.height = 12, fig.width = 12}
-train %>% 
+train2 %>% 
   ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
     geom_point(alpha = 0.5) +
     geom_line(aes(group = PTID), size = 0.01) +
-    scale_y_log10() + 
+    #scale_y_log10() + 
     theme_minimal() 
 
-test %>% 
+test2 %>% 
   ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
     geom_point(alpha = 0.5) +
     geom_line(aes(group = PTID), size = 0.01) +
-    scale_y_log10() + 
+    #scale_y_log10() + 
+    theme_minimal() 
+
+results %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_point(alpha = 0.5) +
+    geom_line(aes(group = PTID), size = 0.01) +
+    #scale_y_log10() + 
     theme_minimal() 
 ```
 
 
 ```{r}
-train %>% 
+train2 %>% 
   ggplot(aes(x = MMSE.Change, y = ypred, color = model)) +
   geom_point(alpha = 0.7) +
   geom_abline(slope = 1, color = "red") +
@@ -187,7 +194,7 @@ train %>%
   facet_wrap(~model)
 
 
-test %>%
+test2 %>%
   ggplot(aes(x = MMSE.Change, y = ypred, color = model)) +
   geom_point(alpha = 0.7) +
   geom_abline(slope = 1, color = "red") +
