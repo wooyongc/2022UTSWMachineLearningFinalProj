@@ -161,26 +161,13 @@ results %>%
 
 ```
 
+# how do predictions change per individual between models. 
+- LME, BME, GLM all have relatively similar predictions, RF stands out from the other 3
 ```{r, fig.height = 12, fig.width = 12}
-train2 %>% 
-  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
-    geom_point(alpha = 0.5) +
-    geom_line(aes(group = PTID), size = 0.01) +
-    #scale_y_log10() + 
-    theme_minimal() 
-
-test2 %>% 
-  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
-    geom_point(alpha = 0.5) +
-    geom_line(aes(group = PTID), size = 0.01) +
-    #scale_y_log10() + 
-    theme_minimal() 
-
 results %>%
   ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
     geom_point(alpha = 0.5) +
     geom_line(aes(group = PTID), size = 0.01) +
-    #scale_y_log10() + 
     theme_minimal() 
 ```
 
@@ -221,3 +208,17 @@ test %>%
     stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
     theme_minimal()
 
+
+train2 %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_point(alpha = 0.5) +
+    geom_line(aes(group = PTID), size = 0.01) +
+    #scale_y_log10() + 
+    theme_minimal() 
+
+test2 %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_point(alpha = 0.5) +
+    geom_line(aes(group = PTID), size = 0.01) +
+    #scale_y_log10() + 
+    theme_minimal() 
