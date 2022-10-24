@@ -1,0 +1,216 @@
+---
+title: "ML_Proj8 - Final"
+author: "Austin Marckx"
+date: "`r Sys.Date()`"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+library(GGally)
+library(ggpubr)
+library(readxl)
+library(randomForest)
+library(caret)
+library(cowplot)
+library(tidyverse)
+library(ggridges)
+library(boot)
+library(mclust)
+library(corrplot)
+library("FactoMineR")
+library("factoextra")
+library(nlme)
+library(lme4)
+library("REEMtree")
+library(brms)
+library(rstatix)
+
+minmax <- function(x){
+  return( (x - min(x))/(max(x) - min(x))  )
+}
+
+set.seed(3141526)
+```
+
+```{r}
+# Read in file
+df <- read_xlsx('./data/AD.training.xlsx')
+
+# Transform datatypes
+df <- df %>% transform(
+  PTID = factor(PTID),
+  DX = factor(DX.bl, levels = c("CN", "EMCI", "LMCI", "AD")),
+  PTGENDER = factor(PTGENDER),
+  APOE4 = factor(APOE4)
+) %>% select(AGE, PTEDUCAT, MMSE, PTGENDER, APOE4, DX, everything(), -DX.bl)
+
+# Summary
+df %>% head()
+df %>% str()
+df %>% summary()
+
+any(is.na(df))
+df[!complete.cases(df),]
+
+# Train test split:
+df <- df %>% select(-RID, -EXAMDATE)
+train <- df %>% dplyr::sample_frac(0.70)
+test  <- dplyr::anti_join(df, train, by = 'PTID')
+
+```
+
+# GLM Regression
+
+## gaussian
+```{r}
+gauss <- glm(`MMSE.Change` ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, data = train, family = gaussian())
+coef(summary(gauss))[,4]
+summary(gauss)
+
+# RMSE
+sqrt(mean(gauss$residuals ^ 2))
+plot(gauss)
+
+train$glm_train <- predict(gauss)
+test$glm_test <- predict(gauss, newdata = test)
+
+```
+
+
+# Random Forest Regression: 
+```{r}
+rf <- randomForest(`MMSE.Change` ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, data = train, ntrees = 500, importance = TRUE, type = 'regression')
+
+# RMSE
+sqrt(mean(rf$mse))
+
+rf
+plot(rf)
+importance(rf)
+varImpPlot(rf)
+
+train$rf_train <- predict(rf)
+test$rf_test <- predict(rf, newdata = test)
+
+```
+
+# Linear Mixed Effects
+
+```{r}
+linMixEff <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|MMSE/DX, data = train)
+linMixEff
+print("RMSE: ")
+sqrt(mean(linMixEff$residuals ^ 2))
+summary(linMixEff)
+
+plot(linMixEff)
+plot(ranef(linMixEff))
+
+train$linMixEff_train <- predict(linMixEff)
+test$linMixEff_test <- predict(linMixEff, newdata = test)
+
+```
+
+# Bayesian Mixed Effects Regression: 
+```{r}
+bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1|DX), data = train)
+summary(bme)
+pp_check(bme, ndraws = 30)
+
+# Get preds
+train$bme_train <- predict(bme)[,1]
+test$bme_test <- predict(bme, newdata = test)[,1]
+
+```
+# RMSE:
+```{r}
+train <- train %>%
+  pivot_longer(cols = c(glm_train, rf_train, linMixEff_train, bme_train), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf_train","glm_train", "linMixEff_train", "bme_train")) ) #%>%
+
+test <- test %>%
+  pivot_longer(cols = c(glm_test, rf_test, linMixEff_test, bme_test), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf_test","glm_test", "linMixEff_test", "bme_test")) )
+
+results <- train %>% bind_rows(test)
+```
+
+
+
+```{r}
+# RMSE:
+results %>% 
+  group_by(model) %>%
+  summarize(RMSE = sqrt(mean(ypred ^ 2)))
+
+```
+
+
+
+# Plot the evals/predictions
+```{r}
+results %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.y = mean, geom = "bar", alpha = 0.15) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+
+```
+
+```{r, fig.height = 12, fig.width = 12}
+train %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_point(alpha = 0.5) +
+    geom_line(aes(group = PTID), size = 0.01) +
+    scale_y_log10() + 
+    theme_minimal() 
+
+test %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_point(alpha = 0.5) +
+    geom_line(aes(group = PTID), size = 0.01) +
+    scale_y_log10() + 
+    theme_minimal() 
+```
+
+
+```{r}
+train %>% 
+  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal() + 
+  facet_wrap(~model)
+
+
+test %>%
+  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal() + 
+  facet_wrap(~model)
+
+```
+
+
+```{r}
+sessionInfo()
+```
+
+Archive:
+train %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+
+test %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+
