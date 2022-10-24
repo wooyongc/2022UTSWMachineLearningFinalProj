@@ -266,8 +266,96 @@ df_preds %>%
 # Linear Mixed Effects
 
 
+
 ```{r}
-lmeMod <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
+train <- df_lme %>% dplyr::sample_frac(0.70)
+test  <- dplyr::anti_join(df_lme, train, by = 'PTID')
+
+df_lme
+train
+test
+```
+
+
+```{r}
+lmeModtt <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4, random = ~ 1|DX, data = train)
+lmeModtt
+print("RMSE: ")
+sqrt(mean(lmeModtt$residuals ^ 2))
+summary(lmeModtt)
+
+plot(lmeModtt)
+
+train %>%
+  ggplot(aes(x = MMSE.Change, y = predict(lmeModtt), color = DX)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
+
+test$ypred = predict(lmeModtt, newdata = test)
+
+test
+
+
+test %>%
+  ggplot(aes(x = MMSE.Change, y = predict(lmeModtt, newdata = test), color = DX)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
+
+plot(ranef(lmeModtt))
+```
+
+
+```{r}
+lmeModtt2 <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4, random = ~ 1|PTID, data = train)
+lmeModtt2
+print("RMSE: ")
+sqrt(mean(lmeModtt2$residuals ^ 2))
+summary(lmeModtt2)
+
+plot(lmeModtt2)
+
+train %>%
+  ggplot(aes(x = MMSE.Change, y = predict(lmeModtt2), color = DX)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
+
+predict(lmeModtt2, newdata = test, allow.new.levels = TRUE)
+
+test %>%
+  ggplot(aes(x = MMSE.Change, y = predict(lmeModtt2, newdata = test), color = DX)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
+
+plot(ranef(lmeModtt2))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+lmeMod <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX*MMSE, random = ~ 1|PTID, data = df_lme)
 lmeMod
 print("RMSE: ")
 sqrt(mean(lmeMod$residuals ^ 2))
@@ -277,6 +365,14 @@ summary(lmeMod)
 df_preds$lme <- predict(lmeMod)
 
 plot(lmeMod)
+
+df_preds %>%
+  ggplot(aes(x = MMSE.Change, y = lme)) +
+  geom_point(alpha = 0.7) +
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
+
+plot(ranef(lmeMod))
 ```
 
 
@@ -284,7 +380,8 @@ plot(lmeMod)
 df_preds %>%
   ggplot(aes(x = MMSE.Change, y = lme)) +
   geom_point(alpha = 0.7) +
-  geom_abline(slope = 1, color = "red")
+  geom_abline(slope = 1, color = "red") +
+  theme_minimal()
 
 df_preds %>%
   ggplot(aes(x = MMSE.Change, y = round(lme, 0)) ) +
@@ -336,9 +433,7 @@ bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1 + DX|PTID), da
 df_preds$bme <- predict(bme)
 summary(bme)
 ```
-```{r}
 
-```
 -- it seems like there is a small improvement in performance after increasing the num of iterations
 
 Family: gaussian 
@@ -449,6 +544,43 @@ pp_check(bme, ndraws = 30)
 #https://htmlpreview.github.io/?https://github.com/ecoronado92/towards_data_science/blob/master/hierarchical_models/bayes_lmm/loo_pit_example/loo_pit.html
 ```
 
+
+
+# Bayesian Mixed Effects Regression: 
+```{r}
+#bme2 <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1 + DX|PTID), data = df_lme, iter = 5000)
+df_preds$bme2 <- predict(bme2)
+summary(bme2)
+df_preds$bme2 <- df_preds$bme2[,1]
+
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme", "bme2")) ) %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
+
+
+df_preds %>% 
+  mutate(lme_rounded = round(lme, 0)) %>%
+  pivot_longer(cols = c(glm, rf, lme, lme_rounded, bme), names_to = "model", values_to = "ypred") %>%
+  mutate(model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded", "bme",  "bme2")) ) %>%
+  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) + 
+    geom_point(alpha = 0.7) +
+    geom_abline(slope = 1, color = "red") +
+    theme_minimal() +
+    facet_wrap(~model)
+```
+
+
+```{r}
+pp_check(bme2, ndraws = 30)
+#https://towardsdatascience.com/evaluating-bayesian-mixed-models-in-r-python-27d344a03016
+#http://mjskay.github.io/tidybayes/
+#https://htmlpreview.github.io/?https://github.com/ecoronado92/towards_data_science/blob/master/hierarchical_models/bayes_lmm/loo_pit_example/loo_pit.html
+```
 
 # PCA 
 ```{r}
