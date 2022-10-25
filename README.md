@@ -291,7 +291,7 @@ Again similar to PCA, the features appear (for the most part) to represent indep
 * Linear Mixed Effects
 * Bayesian Mixed Effects
 
-### GLM
+### General Linear Model
 
 #### Setup
 ```{r}
@@ -307,6 +307,7 @@ train$glm_train <- predict(gauss)
 test$glm_test <- predict(gauss, newdata = test)
 ```
 
+#### Summary
 ```
  (Intercept)          AGE         MMSE PTGENDERMale     PTEDUCAT       APOE41       APOE42       DXEMCI       DXLMCI         DXAD 
 9.776112e-02 6.930991e-02 9.156906e-04 1.409894e-01 8.494118e-01 2.626664e-01 2.417992e-01 8.280865e-01 6.833086e-05 4.718292e-11 
@@ -347,7 +348,7 @@ In terms of feature importances, the only significant coefficients (after p.valu
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### RF
+### Random Forest
 
 #### Setup
 ```{r}
@@ -365,6 +366,7 @@ train$rf_train <- predict(rf)
 test$rf_test <- predict(rf, newdata = test)
 ```
 
+#### Summary
 ```
 Call:
  randomForest(formula = MMSE.Change ~ AGE + MMSE + PTGENDER +      PTEDUCAT + APOE4 + DX, data = train, ntrees = 500, importance = TRUE,      type = "regression") 
@@ -411,6 +413,7 @@ train$linMixEff_train <- predict(linMixEff)
 test$linMixEff_test <- predict(linMixEff, newdata = test)
 ```
 
+#### Summary
 ```
 Linear mixed-effects model fit by REML
   Data: train 
@@ -469,7 +472,7 @@ logLik: -989.6201
 </figure>
 
 
-### Bayesian Mixed effects:
+### Bayesian Mixed Effects
 
 ```{r}
 # Train
@@ -484,7 +487,7 @@ train$bme_train <- predict(bme)[,1]
 test$bme_test <- predict(bme, newdata = test)[,1]
 ```
 
-
+#### Summary
 ```
  Family: gaussian 
   Links: mu = identity; sigma = identity 
@@ -523,7 +526,9 @@ scale reduction factor on split chains (at convergence, Rhat = 1).
 </figure>
 
 
-#### Evaluation
+### Evaluation
+
+#### Reformat results
 ```{r}
 # Cleaning results for plotting
 train2 <- train %>%
@@ -537,19 +542,22 @@ test2 <- test %>%
 results <- train2 %>% bind_rows(test2)
 ```
 
-
+#### RMSE
 ```{r}
 # RMSE:
 results %>% 
   group_by(model) %>%
-  summarize(RMSE = sqrt(mean(ypred ^ 2)))
+  summarize(RMSE = sqrt(mean(predresidual ^ 2)))
 ```
+
 <figure>
   <img src="./img/RMSE.png", width = "720">
-  <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
+  <figcaption><b>Fig .</b> RMSE per model.</figcaption>
 </figure>
 
+While the RMSE was technically the lowest for the general linear model model for the training set, the random forest performed the best on the test dataset.
 
+#### Absolute Residual per Model
 ```{r}
 results %>% 
   ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
@@ -563,7 +571,10 @@ results %>%
   <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
 </figure>
 
+While the mean absolute error appears to be essentially identical for all models. Bars/errorbars indicate mean/SEM respectively. Square Root transform is applied to the y-axis for visual purposes as a few values have very large residuals.
 
+
+#### Absolute Residual per Model per Individual
 ```{r}
 results %>%
   ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
@@ -573,10 +584,10 @@ results %>%
 ```
 <figure>
   <img src="./img/lineResiduals.png", width = "720">
-  <figcaption><b>Fig .</b> Comparisons of prediction error between models.</figcaption>
+  <figcaption><b>Fig .</b> Comparisons of prediction error between models for each individual.</figcaption>
 </figure>
 
-
+GLM, LME, and BME all produce relatively similar predictions for an individual. (As indicated by horizontal lines between the models). On the other hand, Random forest seems to substantially differ from the other three models. 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

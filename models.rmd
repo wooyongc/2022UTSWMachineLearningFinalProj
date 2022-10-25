@@ -145,7 +145,7 @@ results <- train2 %>% bind_rows(test2)
 # RMSE:
 results %>% 
   group_by(model) %>%
-  summarize(RMSE = sqrt(mean(ypred ^ 2)))
+  summarize(RMSE = sqrt(mean(predresidual ^ 2)))
 
 ```
 
