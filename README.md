@@ -295,50 +295,53 @@ Again similar to PCA, the features appear (for the most part) to represent indep
 
 #### Setup
 ```{r}
-gauss <- glm(`MMSE.Change` ~ ., data = df_clean, family = gaussian())
+# Train
+gauss <- glm(`MMSE.Change` ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, data = train, family = gaussian())
+
+# Summary
+coef(summary(gauss))[,4]
 summary(gauss)
+
+# Predictions
+train$glm_train <- predict(gauss)
+test$glm_test <- predict(gauss, newdata = test)
 ```
 
 ```
+ (Intercept)          AGE         MMSE PTGENDERMale     PTEDUCAT       APOE41       APOE42       DXEMCI       DXLMCI         DXAD 
+9.776112e-02 6.930991e-02 9.156906e-04 1.409894e-01 8.494118e-01 2.626664e-01 2.417992e-01 8.280865e-01 6.833086e-05 4.718292e-11 
+
 Call:
-glm(formula = MMSE.Change ~ ., family = gaussian(), data = df_clean)
+glm(formula = MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + 
+    APOE4 + DX, family = gaussian(), data = train)
 
 Deviance Residuals: 
      Min        1Q    Median        3Q       Max  
--17.1360   -1.1402    0.2953    1.6626    8.7894  
+-16.8496   -0.9282    0.3585    1.5829    8.3350  
 
 Coefficients:
              Estimate Std. Error t value Pr(>|t|)    
-(Intercept)   0.35168    3.73327   0.094 0.925000    
-AGE           0.05543    0.02408   2.302 0.021878 *  
-PTEDUCAT     -0.03558    0.06161  -0.578 0.563922    
-MMSE         -0.14412    0.10269  -1.403 0.161316    
-PTGENDERMale  0.29308    0.33798   0.867 0.386417    
-APOE41       -0.34469    0.36527  -0.944 0.345946    
-APOE42       -0.42068    0.55977  -0.752 0.452810    
-DXEMCI       -0.01832    0.52151  -0.035 0.971994    
-DXLMCI       -1.74341    0.45599  -3.823 0.000154 ***
-DXAD         -5.25577    0.75794  -6.934  1.8e-11 ***
+(Intercept)   6.90773    4.15676   1.662 0.097761 .  
+AGE           0.04971    0.02725   1.824 0.069310 .  
+MMSE         -0.38830    0.11577  -3.354 0.000916 ***
+PTGENDERMale  0.56035    0.37948   1.477 0.140989    
+PTEDUCAT      0.01315    0.06920   0.190 0.849412    
+APOE41       -0.45500    0.40533  -1.123 0.262666    
+APOE42       -0.74760    0.63724  -1.173 0.241799    
+DXEMCI       -0.12139    0.55842  -0.217 0.828086    
+DXLMCI       -2.03497    0.50274  -4.048 6.83e-05 ***
+DXAD         -6.04550    0.87980  -6.871 4.72e-11 ***
 ---
 Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
 
-(Dispersion parameter for gaussian family taken to be 10.044)
+(Dispersion parameter for gaussian family taken to be 8.392672)
 
-    Null deviance: 4877.1  on 383  degrees of freedom
-Residual deviance: 3756.5  on 374  degrees of freedom
-AIC: 1987.5
+    Null deviance: 2932.4  on 268  degrees of freedom
+Residual deviance: 2173.7  on 259  degrees of freedom
+AIC: 1347.5
 
 Number of Fisher Scoring iterations: 2
 ```
-
-The RMSE of our model was calculated to be: `RMSE: 3.127688`. 
-
-<figure>
-  <img src="./img/GLM_predVsTrue.png", width = "720">
-  <figcaption><b>Fig 6.</b> GLM Regression Plots.</figcaption>
-</figure>
-
-Between the plot of the prediction error and RMSE, it appears quite clear that the basic GLM is not a very good predictor of the data.
 
 In terms of feature importances, the only significant coefficients (after p.value correction) are in the feature `DX` (specifically `LMCI` and `AD`) which as shown above were the two classes with visually different distributions of MMSE score at baseline and at 4 months.
 
@@ -348,33 +351,38 @@ In terms of feature importances, the only significant coefficients (after p.valu
 
 #### Setup
 ```{r}
-rf <- randomForest(`MMSE.Change` ~ ., data = df_clean, ntrees = 500, importance = TRUE, type = 'regression')
+# Train
+rf <- randomForest(`MMSE.Change` ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, data = train, ntrees = 500, importance = TRUE, type = 'regression')
+
+# Summary
 rf
 plot(rf)
 importance(rf)
 varImpPlot(rf)
+
+# Predictions
+train$rf_train <- predict(rf)
+test$rf_test <- predict(rf, newdata = test)
 ```
 
 ```
 Call:
- randomForest(formula = MMSE.Change ~ ., data = df_clean, ntrees = 500,      importance = TRUE, type = "regression") 
+ randomForest(formula = MMSE.Change ~ AGE + MMSE + PTGENDER +      PTEDUCAT + APOE4 + DX, data = train, ntrees = 500, importance = TRUE,      type = "regression") 
                Type of random forest: regression
                      Number of trees: 500
 No. of variables tried at each split: 2
 
-          Mean of squared residuals: 10.38104
-                    % Var explained: 18.26
+          Mean of squared residuals: 9.146725
+                    % Var explained: 16.09
            %IncMSE IncNodePurity
-AGE      10.349901     1086.5447
-PTEDUCAT  1.117041      558.6845
-MMSE     15.681850      843.7943
-PTGENDER  3.466778      154.5082
-APOE4     2.843596      285.1642
-DX       26.222985      776.4001
+AGE       8.595047      680.1893
+MMSE     15.011456      496.0904
+PTGENDER  2.114726      109.2167
+PTEDUCAT  4.504497      321.4011
+APOE4    -2.518888      195.3548
+DX       24.510405      490.3861
 
 ```
-
-The RMSE of our model was calculated to be: `RMSE: 3.244548`.
 
 <figure>
   <img src="./img/rfPlot.png", width = "720">
@@ -395,9 +403,16 @@ Similar to the GLM, the Random Forest model struggles to give good predictions. 
 
 #### Setup
 ```{r}
-lmeMod2 <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4, random = ~ 1|DX, data = train)
-lmeMod2
-summary(lmeMod2)
+# Train
+linMixEff <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4 , random = ~ 1|DX, data = train)
+
+# Summary
+linMixEff
+summary(linMixEff)
+
+# Predictions
+train$linMixEff_train <- predict(linMixEff)
+test$linMixEff_test <- predict(linMixEff, newdata = test)
 ```
 
 ```
@@ -452,7 +467,6 @@ logLik: -989.6201
   <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
 </figure>
 
-The RMSE of our model was calculated to be: `RMSE: 2.22836`.  
 
 First note ththat the coefficients mentioned here: 
 > Fixed: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX 
@@ -464,67 +478,75 @@ are exactly the same as those above in the GLM.
 ### Bayesian Mixed effects:
 
 ```{r}
-bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX + (1 + DX|PTID), data = df_lme)
-df_preds$bme <- predict(bme)
+# Train
+bme <- brm(MMSE.Change ~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4 + (1|DX), data = train)
+
+# Summary
 summary(bme)
+pp_check(bme, ndraws = 30)
+
+# Predictions
+train$bme_train <- predict(bme)[,1]
+test$bme_test <- predict(bme, newdata = test)[,1]
 ```
-The intercept as well as the Diagnosis effect is impacted by the individual patient
+
 
 ```
  Family: gaussian 
   Links: mu = identity; sigma = identity 
-Formula: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX + (1 + DX | PTID) 
-   Data: df_lme (Number of observations: 384) 
+Formula: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + (1 | DX) 
+   Data: train (Number of observations: 269) 
   Draws: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
          total post-warmup draws = 4000
 
 Group-Level Effects: 
-~PTID (Number of levels: 384) 
-                      Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sd(Intercept)             0.68      0.33     0.04     1.19 1.06       58      179
-sd(DXEMCI)                1.32      0.37     0.63     2.13 1.06      180      226
-sd(DXLMCI)                3.22      0.41     2.38     3.96 1.10       32      196
-sd(DXAD)                  5.34      0.58     4.25     6.44 1.02      233      600
-cor(Intercept,DXEMCI)     0.03      0.41    -0.75     0.79 1.03      153      382
-cor(Intercept,DXLMCI)    -0.02      0.44    -0.79     0.83 1.08       41      101
-cor(DXEMCI,DXLMCI)       -0.06      0.46    -0.83     0.79 1.11       31      339
-cor(Intercept,DXAD)       0.03      0.43    -0.77     0.82 1.04      148      443
-cor(DXEMCI,DXAD)          0.01      0.44    -0.82     0.83 1.06      205      376
-cor(DXLMCI,DXAD)          0.05      0.47    -0.83     0.82 1.03       92      427
+~DX (Number of levels: 4) 
+              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+sd(Intercept)     2.97      1.18     1.39     5.94 1.00     1378     1865
 
 Population-Level Effects: 
              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-Intercept       13.36      2.75     7.69    18.23 1.02      181     2518
-AGE              0.00      0.02    -0.03     0.04 1.02      325     1660
-MMSE            -0.48      0.08    -0.63    -0.32 1.02      346     2615
-PTGENDERMale     0.06      0.20    -0.31     0.46 1.01     3554     3043
-PTEDUCAT         0.03      0.04    -0.05     0.12 1.01     1100      919
-APOE41          -0.10      0.21    -0.53     0.33 1.01     3125     3114
-APOE42          -0.58      0.41    -1.39     0.24 1.01     1301     2359
-DXEMCI          -0.59      0.28    -1.12    -0.02 1.04     2683     2491
-DXLMCI          -2.52      0.39    -3.21    -1.77 1.04       89      471
-DXAD            -7.08      0.82    -8.68    -5.61 1.02      251     1637
+Intercept        4.11      4.26    -4.33    12.46 1.00     2785     2452
+AGE              0.05      0.03    -0.00     0.10 1.00     4020     2908
+MMSE            -0.34      0.12    -0.57    -0.10 1.00     3727     3104
+PTGENDERMale     0.57      0.38    -0.17     1.33 1.00     3258     2692
+PTEDUCAT         0.01      0.07    -0.12     0.15 1.00     3773     3179
+APOE41          -0.50      0.40    -1.27     0.32 1.00     3366     2829
+APOE42          -0.81      0.63    -2.05     0.41 1.00     3631     3204
 
 Family Specific Parameters: 
       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
-sigma     1.00      0.23     0.58     1.38 1.07       48       63
+sigma     2.91      0.13     2.67     3.18 1.00     4278     2700
 
 Draws were sampled using sampling(NUTS). For each parameter, Bulk_ESS
 and Tail_ESS are effective sample size measures, and Rhat is the potential
-scale reduction factor on split chains (at convergence, Rhat = 1)
+scale reduction factor on split chains (at convergence, Rhat = 1).
 ```
 
 
 
 
 #### Evaluation
+```{r}
+# Cleaning results for plotting
+train2 <- train %>%
+  pivot_longer(cols = c(glm_train, rf_train, linMixEff_train, bme_train), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf_train","glm_train", "linMixEff_train", "bme_train")) ) #%>%
+
+test2 <- test %>%
+  pivot_longer(cols = c(glm_test, rf_test, linMixEff_test, bme_test), names_to = "model", values_to = "ypred") %>%
+  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf_test","glm_test", "linMixEff_test", "bme_test")) )
+
+results <- train2 %>% bind_rows(test2)
+```
 
 
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-
-## Discussion
-
+```{r}
+# RMSE:
+results %>% 
+  group_by(model) %>%
+  summarize(RMSE = sqrt(mean(ypred ^ 2)))
+```
 <figure>
   <img src="./img/RMSE.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
@@ -532,7 +554,12 @@ scale reduction factor on split chains (at convergence, Rhat = 1)
 
 
 ```{r}
-
+results %>% 
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
+    stat_summary(fun.y = mean, geom = "bar", alpha = 0.15) +
+    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
+    theme_minimal()
 ```
 <figure>
   <img src="./img/barResiduals.png", width = "720">
@@ -540,15 +567,25 @@ scale reduction factor on split chains (at convergence, Rhat = 1)
 </figure>
 
 
-
-
 ```{r}
-
+results %>%
+  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 
+    geom_point(alpha = 0.5) +
+    geom_line(aes(group = PTID), size = 0.01) +
+    theme_minimal() 
 ```
 <figure>
   <img src="./img/lineResiduals.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of prediction error between models.</figcaption>
 </figure>
+
+
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+
+## Discussion
+
 
 
 ## Conclusions
