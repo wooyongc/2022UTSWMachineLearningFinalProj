@@ -379,7 +379,7 @@ AGE       8.595047      680.1893
 MMSE     15.011456      496.0904
 PTGENDER  2.114726      109.2167
 PTEDUCAT  4.504497      321.4011
-APOE4    -2.518888      195.3548
+APOE4    -2.518888      195.3548s
 DX       24.510405      490.3861
 
 ```
@@ -389,10 +389,6 @@ DX       24.510405      490.3861
   <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
 </figure>
   
-<figure>
-  <img src="./img/RF_predVsTrue.png", width = "720">
-  <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
-</figure>
 
 Similar to the GLM, the Random Forest model struggles to give good predictions. In terms of feature importances, once again `DX` is quite important in decreasing the MSE.  The baseline MMSE also surfaces as an important predictor of the MMSE Change.  That said, the RMSE is once again quite large.  
 
@@ -467,13 +463,11 @@ logLik: -989.6201
   <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
 </figure>
 
+<figure>
+  <img src="./img/randomEffDX.png", width = "720">
+  <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
+</figure>
 
-First note ththat the coefficients mentioned here: 
-> Fixed: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX 
- (Intercept)          AGE         MMSE PTGENDERMale     PTEDUCAT       APOE41       APOE42       DXEMCI       DXLMCI         DXAD 
-  0.35167737   0.05543014  -0.14411548   0.29307865  -0.03558215  -0.34469115  -0.42067946  -0.01832123  -1.74341427  -5.25577317 
-
-are exactly the same as those above in the GLM.  
 
 ### Bayesian Mixed effects:
 
@@ -523,7 +517,10 @@ and Tail_ESS are effective sample size measures, and Rhat is the potential
 scale reduction factor on split chains (at convergence, Rhat = 1).
 ```
 
-
+<figure>
+  <img src="./img/bmePPCheck.png", width = "720">
+  <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
+</figure>
 
 
 #### Evaluation
