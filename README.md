@@ -429,8 +429,7 @@ StdDev:    2.697636 2.897503
 
 Number of Observations: 269
 Number of Groups: 4 
-[1] "RMSE: "
-[1] 3.201206
+
 Linear mixed-effects model fit by REML
   Data: train 
 
@@ -456,19 +455,15 @@ Standardized Within-Group Residuals:
 Number of Observations: 269
 Number of Groups: 4 
 
-AIC: 2003.24
-BIC: 2050.331
-logLik: -989.6201	
-
 ```
 <figure>
   <img src="./img/lmeSummary.png", width = "720">
-  <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
+  <figcaption><b>Fig .</b> Linear Mixed Effects Coefficients.</figcaption>
 </figure>
 
 <figure>
   <img src="./img/randomEffDX.png", width = "720">
-  <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
+  <figcaption><b>Fig .</b> Linear Mixed Effects Random Effects.</figcaption>
 </figure>
 
 
