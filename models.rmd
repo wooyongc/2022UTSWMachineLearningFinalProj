@@ -112,6 +112,7 @@ plot(ranef(linMixEff))
 train$linMixEff_train <- predict(linMixEff)
 test$linMixEff_test <- predict(linMixEff, newdata = test)
 
+
 ```
 
 # Bayesian Mixed Effects Regression: 
@@ -163,6 +164,8 @@ results %>%
 
 # how do predictions change per individual between models. 
 - LME, BME, GLM all have relatively similar predictions, RF stands out from the other 3
+
+- maybe boosting could help...
 ```{r, fig.height = 12, fig.width = 12}
 results %>%
   ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model, fill = model)) + 

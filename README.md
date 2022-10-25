@@ -395,43 +395,52 @@ Similar to the GLM, the Random Forest model struggles to give good predictions. 
 
 #### Setup
 ```{r}
-lmeMod2 <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4+DX, random = ~ 1|PTID, data = df_lme)
+lmeMod2 <- lme(`MMSE.Change`~ AGE+MMSE+PTGENDER+PTEDUCAT+APOE4, random = ~ 1|DX, data = train)
 lmeMod2
 summary(lmeMod2)
 ```
 
 ```
 Linear mixed-effects model fit by REML
-  Data: df_lme 
-  Log-restricted-likelihood: -989.6201
-  Fixed: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX 
- (Intercept)          AGE         MMSE PTGENDERMale     PTEDUCAT       APOE41       APOE42       DXEMCI       DXLMCI         DXAD 
-  0.35167737   0.05543014  -0.14411548   0.29307865  -0.03558215  -0.34469115  -0.42067946  -0.01832123  -1.74341427  -5.25577317 
+  Data: train 
+  Log-restricted-likelihood: -676.6212
+  Fixed: MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 
+ (Intercept)          AGE         MMSE PTGENDERMale     PTEDUCAT       APOE41       APOE42 
+  3.91666593   0.04941079  -0.35126601   0.56801388   0.01218666  -0.48859860  -0.78098112 
 
 Random effects:
- Formula: ~1 | PTID
+ Formula: ~1 | DX
         (Intercept) Residual
-StdDev:    2.967406 1.112879
+StdDev:    2.697636 2.897503
 
-Fixed effects:  MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 + DX 
+Number of Observations: 269
+Number of Groups: 4 
+[1] "RMSE: "
+[1] 3.201206
+Linear mixed-effects model fit by REML
+  Data: train 
+
+Random effects:
+ Formula: ~1 | DX
+        (Intercept) Residual
+StdDev:    2.697636 2.897503
+
+Fixed effects:  MMSE.Change ~ AGE + MMSE + PTGENDER + PTEDUCAT + APOE4 
  Correlation: 
-             (Intr) AGE    MMSE   PTGEND PTEDUC APOE41 APOE42 DXEMCI DXLMCI
-AGE          -0.582                                                        
-MMSE         -0.815  0.093                                                 
-PTGENDERMale  0.054 -0.100  0.008                                          
-PTEDUCAT     -0.193  0.058 -0.121 -0.228                                   
-APOE41       -0.124  0.107  0.028 -0.059  0.092                            
-APOE42       -0.197  0.165  0.105 -0.054  0.077  0.324                     
-DXEMCI       -0.319  0.303  0.148  0.006  0.029 -0.013 -0.036              
-DXLMCI       -0.449  0.112  0.438 -0.021 -0.009 -0.112 -0.087  0.461       
-DXAD         -0.659  0.080  0.736  0.015  0.010 -0.128 -0.064  0.350  0.608
+             (Intr) AGE    MMSE   PTGEND PTEDUC APOE41
+AGE          -0.585                                   
+MMSE         -0.757  0.119                            
+PTGENDERMale  0.119 -0.145 -0.028                     
+PTEDUCAT     -0.133  0.015 -0.177 -0.271              
+APOE41       -0.109  0.100 -0.004 -0.090  0.098       
+APOE42       -0.169  0.180  0.050 -0.058  0.066  0.307
 
 Standardized Within-Group Residuals:
-        Min          Q1         Med          Q3         Max 
--1.89867440 -0.12633857  0.03271953  0.18422209  0.97386997 
+       Min         Q1        Med         Q3        Max 
+-5.8077759 -0.3162452  0.1115573  0.5588864  2.8449251 
 
-Number of Observations: 384
-Number of Groups: 384 
+Number of Observations: 269
+Number of Groups: 4 
 
 AIC: 2003.24
 BIC: 2050.331
@@ -451,14 +460,6 @@ First note ththat the coefficients mentioned here:
   0.35167737   0.05543014  -0.14411548   0.29307865  -0.03558215  -0.34469115  -0.42067946  -0.01832123  -1.74341427  -5.25577317 
 
 are exactly the same as those above in the GLM.  
-
-<figure>
-  <img src="./img/LME_predVsTrue.png", width = "720">
-  <figcaption><b>Fig 7.</b> Random Forest Regression Plots.</figcaption>
-</figure>
-
-However, by including the Patient ID as a random effects term we allow for each subject to be independently impacted by the fixed effects of Age, Diagnosis, etc. In short, if we control for the variance of an individual, the fixed effects are actually a fairly good predictor of the future score of that same individual.
-
 
 ### Bayesian Mixed effects:
 
@@ -524,37 +525,28 @@ scale reduction factor on split chains (at convergence, Rhat = 1)
 
 ## Discussion
 
-```{r}
-df_preds %>% 
-  mutate(lme_rounded = round(lme, 0)) %>%
-  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
-  mutate(predresidual = MMSE.Change - ypred, model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
-  ggplot(aes(x = model, y = sqrt(abs(predresidual)), color = model)) + 
-    geom_jitter(width = 0.3, height = 0.035, alpha = 0.7) +
-    stat_summary(fun.data = mean_se, geom = "errorbar", color = "black", width= 0.2) +
-    theme_minimal()
-```
 <figure>
-  <img src="./img/sqrtAbsPredictionResidualsBetweenModels2.png", width = "720">
+  <img src="./img/RMSE.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
 </figure>
 
-Clearly, on the training set the lme model (especially with rounded prediction) seems to have the smallest error.
+
+```{r}
+
+```
+<figure>
+  <img src="./img/barResiduals.png", width = "720">
+  <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
+</figure>
+
+
 
 
 ```{r}
-df_preds %>% 
-  mutate(lme_rounded = round(lme, 0)) %>%
-  pivot_longer(cols = c(glm, rf, lme, lme_rounded), names_to = "model", values_to = "ypred") %>%
-  mutate(model = factor(model, levels = c("rf", "glm", "lme", "lme_rounded")) ) %>%
-  ggplot(aes(x = MMSE.Change, y = ypred, color = model)) + 
-    geom_point(alpha = 0.7) +
-    geom_abline(slope = 1, color = "red") +
-    theme_minimal() +
-    facet_wrap(~model)
+
 ```
 <figure>
-  <img src="./img/trainingPredvsTrue2.png", width = "720">
+  <img src="./img/lineResiduals.png", width = "720">
   <figcaption><b>Fig .</b> Comparisons of prediction error between models.</figcaption>
 </figure>
 
