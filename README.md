@@ -102,13 +102,11 @@ Feature Selection and Dimension reduction:
 - FAMD
 
 Model training
-- GLM
-- RF
-
-Dataset augmentation?
-- GLM2
-- RF2
-
+- General Linear Model
+- Random Forest
+- Linear Mixed Effects
+- Bayesian Mixed Effects
+- (XGBoost?) Data Augmentation
 
 ### Preprocessing
 
@@ -458,12 +456,12 @@ Number of Groups: 4
 ```
 <figure>
   <img src="./img/lmeSummary.png", width = "720">
-  <figcaption><b>Fig .</b> Linear Mixed Effects Coefficients.</figcaption>
+  <figcaption><b>Fig.</b> Linear Mixed Effects Coefficients.</figcaption>
 </figure>
 
 <figure>
   <img src="./img/randomEffDX.png", width = "720">
-  <figcaption><b>Fig .</b> Linear Mixed Effects Random Effects.</figcaption>
+  <figcaption><b>Fig.</b> Linear Mixed Effects Random Effects.</figcaption>
 </figure>
 
 
@@ -517,7 +515,7 @@ scale reduction factor on split chains (at convergence, Rhat = 1).
 
 <figure>
   <img src="./img/bmePPCheck.png", width = "720">
-  <figcaption><b>Fig .</b> Linear Mixed Effects Summary.</figcaption>
+  <figcaption><b>Fig. </b> Bayesian Mixed Effects Posterior Predictive check.</figcaption>
 </figure>
 
 
@@ -563,7 +561,7 @@ results %>%
 ```
 <figure>
   <img src="./img/barResiduals.png", width = "720">
-  <figcaption><b>Fig .</b> Comparisons of absolute prediction error between models.</figcaption>
+  <figcaption><b>Fig.</b> Comparisons of absolute prediction error between models.</figcaption>
 </figure>
 
 While the mean absolute error appears to be essentially identical for all models. Bars/errorbars indicate mean/SEM respectively. Square Root transform is applied to the y-axis for visual purposes as a few values have very large residuals.
@@ -579,22 +577,21 @@ results %>%
 ```
 <figure>
   <img src="./img/lineResiduals.png", width = "720">
-  <figcaption><b>Fig .</b> Comparisons of prediction error between models for each individual.</figcaption>
+  <figcaption><b>Fig.</b> Comparisons of prediction error between models for each individual.</figcaption>
 </figure>
 
 GLM, LME, and BME all produce relatively similar predictions for an individual. (As indicated by horizontal lines between the models). On the other hand, Random forest seems to substantially differ from the other three models. 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+## Discussion / Conclusions
 
-## Discussion
+Despite extensive efforts to improve model performance, the RMSE is relatively high for this regression task.  This was anticipated, however, due to the size of the input and complexity of the output variable.
 
-
-
-## Conclusions
-
-
-
+### Future Directions
+- Could do some dataset pruning/outlier removal
+- Could try boosting as some models seemed to predict better for certain individuals
+- Could try more transforms of continuous variables.
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -608,7 +605,7 @@ GLM, LME, and BME all produce relatively similar predictions for an individual. 
 
 * Noah Chang - WooYong.Chang@UTSouthwestern.edu
   * Data Augmentation
-  * And that other thing
+  * Presentation
 
 Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj](https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj)
 
@@ -617,12 +614,8 @@ Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj]
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-Works cited go here...
-
 - MMSE Overview: https://oxfordmedicaleducation.com/geriatrics/mini-mental-state-examination-mmse/
 - MMSE Sample Exam: https://cgatoolkit.ca/Uploads/ContentDocuments/MMSE.pdf
-
-
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
