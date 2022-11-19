@@ -106,7 +106,7 @@ Model training
 - Random Forest
 - Linear Mixed Effects
 - Bayesian Mixed Effects
-- (XGBoost?) Data Augmentation
+- XGBoost with Data Augmentation via RHVAE
 
 ### Preprocessing
 
@@ -480,6 +480,8 @@ train$bme_train <- predict(bme)[,1]
 test$bme_test <- predict(bme, newdata = test)[,1]
 ```
 
+
+
 #### Summary
 ```
  Family: gaussian 
@@ -584,6 +586,87 @@ GLM, LME, and BME all produce relatively similar predictions for an individual. 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
+### XGBoost Regression and Data Augmentation through RHVAE
+
+#### Data Preparation and XGBoost Regression on Original Data
+
+One of the challenges with this dataset was that the training set was very small. There are several ways to augment a data, but for our project, we wanted to experiment with data augmentation with a Variantional Autoencoder(VAE). Usually, deep learning models such as VAE requires a large number of training samples in order to get a good latent space representation. We picked [RHVAE](https://github.com/clementchadebec/pyraug) for our problem, as the model is specifically aimed at data augmentation on low sample size. It utilizes the Riemannian Hamiltonian VAE model proposed in [this paper](https://arxiv.org/pdf/2010.11518.pdf), which learns the Riemannian latent structure of a given data.
+
+To compare the performace of the data augmentation, we will be using hyperparameter optimized XGboost Regressor on original data and original + different size of generated data.
+
+Since the data augmentation package is in python, we process the data with one hot encoding.
+
+<figure>
+  <img src="./img/processed_data.png", width = "720">
+  <figcaption><b>Fig.</b> Processed Data with One Hot Encoding.</figcaption>
+</figure>
+
+And split the data into train and test.
+
+```python
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+```
+
+We'll be using `ray` a popular hyperparameter tuning package written in python, to tune the parameters for `XGBRegressor()`. Some codes are borrowed from [here](https://github.com/druce/iowa/blob/master/hyperparameter_optimization.ipynb). These are the parameters we will tune. 
+
+```python
+xgb_tune_kwargs = {
+    "n_estimators": tune.loguniform(100, 10000),
+    "max_depth": tune.randint(0, 5), 
+    "subsample": tune.quniform(0.25, 0.75, 0.01),
+    "colsample_bytree": tune.quniform(0.05, 0.5, 0.01),
+    "colsample_bylevel": tune.quniform(0.05, 0.5, 0.01),    
+    "learning_rate": tune.quniform(-3.0, -1.0, 0.5)
+}
+```
+
+For each parameter set, we will be doing a 4-fold crossvalidation using RMSE as the score. After 2 hours of optimization on 2048 parameter sets, our RMSE on the training dataset has improved marginally, from 3.245 to 3.183. We then trained and predicted on the test dataset using 4-fold cross validation. The following figure shows the evolution of RMSE on training data during training. 
+
+<figure>
+  <img src="./img/train_rmse.png", width = "720">
+  <figcaption><b>Fig.</b> RMSE on Original Training Dataset. </figcaption>
+</figure>
+
+#### Data Augmentation via RHVAE
+
+The RHVAE is implemented in the `pyraug` package, and it is fairly easy to use. The model is originally purposed to augment image data, so we merge the X and y to together. After running for 10000 epochs, the model generated 3000 dataset, which follows the paper's 10-fold data augmentation which performed the best. The problem with the generated data was that all the categorical variables were handled as a continuous variable, and the model generated an arbitrary number from 0~1 that did not make sense. Also, the values in the `DX` column is mutually exclusive, but the model's output did not consider this constraint. Quickly looking at the data, it seems like the generated does not make any sense. 
+
+<figure>
+  <img src="./img/augmented_data.png", width = "720">
+  <figcaption><b>Fig.</b> Generated Data. </figcaption>
+</figure>
+
+#### XGBoost with the Augmented Data
+We also did hyperparameter optimization with the augmented dataset.
+
+```
+== Status == Current time: 2022-11-06 04:02:51 (running for 07:09:59.35) Memory usage on this node: 28.0/1488.0 GiB Using AsyncHyperBand: num_stopped=1125 Bracket: Iter 64.000: None | Iter 16.000: None | Iter 4.000: None | Iter 1.000: -0.9937049492789912 Resources requested: 0/72 CPUs, 0/1 GPUs, 0.0/1277.03 GiB heap, 0.0/186.26 GiB objects Current best trial: 563261f0 with rmse=0.9913255828507491 and parameters={'n_estimators': 8654, 'max_depth': 3, 'subsample': 0.31, 'colsample_bytree': 0.48, 'colsample_bylevel': 0.1, 'learning_rate': 0.001} Result logdir: /home2/s438167/ray_results/hyperopt_xgb Number of trials: 2048/2048 (2048 TERMINATED)
+
+2022-11-06 04:02:51,934 INFO tune.py:758 -- Total run time: 29399.66 seconds (29399.10 seconds for the tuning loop).
+
+Start Time 2022-11-05 20:52:47.334404 End Time 2022-11-06 04:02:57.649565 7:10:10
+```
+
+The original paper have experimented with 5 fold and 10 fold augmentation, and they found out that original data + 10 fold augmentation performed the best. We also wanted to experiment with the different numbers of the generated data for training. Here are the RMSE evolution during training, on the training dataset.
+
+<p float="left">
+  <img src="./img/100da_train_rmse.png" width="240" />
+  <img src="./img/1000da_train_rmse.png" width="240" /> 
+  <img src="./img31000da_train_rmse.png" width="240" />
+</p>
+
+We can then plot the final comparison of RMSE on the test dataset.
+
+<figure>
+  <img src="./img/test_rmse_boxplot.png", width = "720">
+  <figcaption><b>Fig.</b> Models' RMSE on Test Data. </figcaption>
+</figure>
+
+There is an improvement on the RMSE using the augmented dataset, but it is very small, and the RMSE is still too high. It seems that either the features are not very predicitve of the response, or the data augmentation is not very effective. 
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## Discussion / Conclusions
 
 Despite extensive efforts to improve model performance, the RMSE is relatively high for this regression task.  This was anticipated, however, due to the size of the input and complexity of the output variable.
@@ -591,7 +674,8 @@ Despite extensive efforts to improve model performance, the RMSE is relatively h
 ### Future Directions
 - Could do some dataset pruning/outlier removal
 - Could try boosting as some models seemed to predict better for certain individuals
-- Could try more transforms of continuous variables.
+- Could try more transforms of continuous variables
+- Could try VAE specifically designed for tabular data
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -605,7 +689,7 @@ Despite extensive efforts to improve model performance, the RMSE is relatively h
 
 * Noah Chang - WooYong.Chang@UTSouthwestern.edu
   * Data Augmentation
-  * Presentation
+  * XGBoost Regression
 
 Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj](https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj)
 
