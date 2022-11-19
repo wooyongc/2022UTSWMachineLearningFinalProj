@@ -700,6 +700,8 @@ Project Link: [https://github.com/austinmarckx/2022UTSWMachineLearningFinalProj]
 
 - MMSE Overview: https://oxfordmedicaleducation.com/geriatrics/mini-mental-state-examination-mmse/
 - MMSE Sample Exam: https://cgatoolkit.ca/Uploads/ContentDocuments/MMSE.pdf
+- pyraug, RHVAE: https://github.com/clementchadebec/pyraug
+- Using Ray Tune on XGBRegressor: https://github.com/druce/iowa/blob/master/hyperparameter_optimization.ipynb
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
