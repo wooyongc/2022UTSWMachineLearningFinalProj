@@ -653,7 +653,7 @@ The original paper have experimented with 5 fold and 10 fold augmentation, and t
 <p float="left">
   <img src="./img/100da_train_rmse.png" width="240" />
   <img src="./img/1000da_train_rmse.png" width="240" /> 
-  <img src="./img3000da_train_rmse.png" width="240" />
+  <img src="./img/3000da_train_rmse.png" width="240" />
 </p>
 
 We can then plot the final comparison of RMSE on the test dataset.
